@@ -9,10 +9,11 @@
 class AbstractInterpolatable {
 public:
     virtual ~AbstractInterpolatable() {}
-    virtual AbstractInterpolatable linear_interpolate_with (
+    virtual void linear_interpolate_with (
         double k2, const AbstractInterpolatable& a2, 
-        double k3, const AbstractInterpolatable& a3
-    ) const { return *this; }
+        double k3, const AbstractInterpolatable& a3,
+        AbstractInterpolatable& dest
+    ) const {  }
 };
 
 template <typename T>
@@ -135,3 +136,8 @@ public:
 };
 
 
+
+
+class NothingUniform: public AbstractUniform {};
+
+class NothingProperty: public AbstractInterpolatable {};

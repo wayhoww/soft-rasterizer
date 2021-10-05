@@ -1,23 +1,12 @@
 #pragma once
 #include "shader.hpp"
 
-class NoUniform: public AbstractUniform {};
-
-class Nothing: public AbstractInterpolatable {
-    virtual AbstractInterpolatable linear_interpolate_with (
-        double k2, const AbstractInterpolatable& a2, 
-        double k3, const AbstractInterpolatable& a3
-    ) const {
-        return *this;
-    }
-};
-
-class GrayShader: public Shader<Nothing, NoUniform> {
+class GrayShader: public Shader<NothingProperty, NothingUniform> {
 public:
-    RGBColor shade(const Fragment<Nothing>& fragment, const NoUniform& uniform) const override {
+    RGBColor shade(const Fragment<NothingProperty>& fragment, const NothingUniform& uniform) const override {
         return RGBColor{0.5, 0.5, 0.5};
     }
 };
 
 
-using GrayObject = Object<Nothing, NoUniform, GrayShader>;
+using GrayObject = Object<NothingProperty, NothingUniform, GrayShader>;

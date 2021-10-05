@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include "simple_color.hpp"
 
 template <typename T> 
 T min3(const T& t1, const T& t2, const T& t3) {
@@ -154,14 +155,14 @@ public:
                                 d_buffer[x_index][y_index] = z;
                                 
                                 auto fragment = v1.initFragment();
-                                fragment->getProperties() = v1
-                                    .getProperties()
+                                v1.getProperties()
                                     .linear_interpolate_with(
                                         k2, v2.getProperties(),
-                                        k3, v3.getProperties()
+                                        k3, v3.getProperties(),
+                                        fragment->getProperties()
                                     );
 
-                                f_buffer[x_index][y_index].first =  fragment;
+                                f_buffer[x_index][y_index].first = fragment;
                                 f_buffer[x_index][y_index].second = &pObj->getShader();
                             }   
                         }

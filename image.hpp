@@ -10,7 +10,33 @@ struct RGBColor {
 	double r = 0;
 	double g = 0;
 	double b = 0;
+
+	RGBColor& operator*=(double k) {
+		r *= k;
+		g *= k;
+		b *= k;
+		return *this;
+	}
+
+	RGBColor operator*(double k) const {
+		auto out = *this;
+		return out *= k;
+	}
+
+	RGBColor& operator+=(const RGBColor& c) {
+		r += c.r;
+		g += c.g;
+		b += c.b;
+		return *this;
+	}
+
+	RGBColor operator+(const RGBColor& c) {
+		auto out = *this;
+		return out += c;
+	}
 };
+
+RGBColor operator*(double k, const RGBColor& c);
 
 
 class Image {
