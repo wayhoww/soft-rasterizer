@@ -4,7 +4,6 @@
 
 // dir: [inWorld(objX) inWorld(objY) inWorld(objZ)]
 Mat4 model_transform(Vec3 pos, Mat3 dir) {
-    // dir
     Mat4 mat;
     for(int i = 0; i < 3; i++) 
         for(int j = 0; j < 3; j++) 
@@ -20,6 +19,9 @@ Mat4 model_transform(Vec3 pos, Mat3 dir) {
 }
 
 Mat4 view_transform(Vec3 camera_pos, Vec3 camera_dir, Vec3 camera_top) {
+    camera_dir.normalize();
+    camera_top.normalize();
+    
     Vec3 matrices[] = {
         cross_product(camera_dir, camera_top),  // x
         camera_top,                             // y
