@@ -116,8 +116,8 @@ int main() {
 	GrayObject obj1 = getGrayObj();
 	ColorObject obj2 = getColorObj();
 
-	Vec3 obj_pos1 {-2, 0.0, 0.0};
-	Vec3 obj_pos2 {2, 0.0, 0.0};
+	Vec3 obj_pos1{ -2, 0.0, 0.0 };
+	Vec3 obj_pos2{ 2, 0.0, 0.0 };
 	Mat3 obj_dir{
 		{1, 0, 0},
 		{0, 1, 0},
@@ -125,18 +125,18 @@ int main() {
 	};
 
 
-	ObjectDescriptor desp1{std::make_shared<GrayObject>(obj1), obj_dir, obj_pos1};
-	ObjectDescriptor desp2{std::make_shared<ColorObject>(obj2), obj_dir, obj_pos2};
-	
+	ObjectDescriptor desp1{ std::make_shared<GrayObject>(obj1), obj_dir, obj_pos1 };
+	ObjectDescriptor desp2{ std::make_shared<ColorObject>(obj2), obj_dir, obj_pos2 };
+
 
 	// cannot guarentee objects are NothingUniform acceptable
 	Rasterizer<NothingUniform> rasterizer;
-	rasterizer.objects.push_back(desp1);
-	rasterizer.objects.push_back(desp2);
+	rasterizer.addObject(obj1, obj_dir, obj_pos1);
+	rasterizer.addObject(obj2, obj_dir, obj_pos2);
 
-	Vec3 camera_pos {0, 3, 4};
-	Vec3 camera_dir {0, -0.7, -1}; 
-	Vec3 camera_top {0, 1.0, -0.7};
+	Vec3 camera_pos{ 0, 3, 9 };
+	Vec3 camera_dir{ 0, -1, -3 };
+	Vec3 camera_top{ 0, 3, -1 };
 
 	rasterizer.rasterize(
 		camera_pos,
@@ -145,8 +145,14 @@ int main() {
 		0.5,
 		10,
 		deg_to_rad(90),
-		1,
-		800,
+		2,
+		800 * 2,
 		800
 	).save("image_multi.bmp");
+
+	Image image(400, 200);
+	image[{20, 10}].b = 1.0;
+	image.save("b.bmp");
+
+	getchar();
 }

@@ -110,8 +110,9 @@ class Rasterizer {
         return out;
     }
 
-public:
     std::vector<ObjectDescriptor> objects;
+
+public:
     Uniform uniform;
 
     Rasterizer() = default;
@@ -129,6 +130,16 @@ public:
         }
     }
 
+    template<typename P, typename ShaderT>
+    Rasterizer& addObject(
+        const Object<P, Uniform, ShaderT>& obj, 
+        const Mat3& dir, 
+        const Vec3& pos
+    ) {
+        objects.push_back(ObjectDescriptor{std::make_shared<Object<P, Uniform, ShaderT>>(obj), dir, pos});
+        return *this;
+    }
+
     Image rasterize(
         const Vec3& camera_pos,
         const Vec3& camera_dir,
@@ -140,57 +151,47 @@ public:
         int width,           // 和实际的图片大小有关
         int height           // width / height == aspect ratio should hold
     ) /* const cast here */ {
-        // inspect the feature of projection transform
-        near = -near;
-        far = -far;
 
         auto h = 2 * tan(field_of_view_y / 2) * near;
         auto w = aspect_ratio * h;
 
-        Mat4 Screen {
+        Mat4 S {
             { 2.0/w, 0, 0, 0 },
             { 0, 2.0/h, 0, 0 },
             { 0, 0,     1, 0 },
             { 0, 0,     0, 1 }
         };
+
         auto V = view_transform(camera_pos, camera_dir, camera_top);
         auto P = projection_transform(near, far);
-        auto GlobalTransform = Screen * P * V;
+        auto SPV = S * P * V;
 
         auto f_buffer = matrix_of_size<std::pair<const AbstractFragment*, const AbstractShader*>>(width, height, std::make_pair(nullptr, nullptr));
-        auto d_buffer = matrix_of_size<double>(width, height, -1e9); // TODO: -inf
+        auto d_buffer = matrix_of_size<double>(width, height, far + 1); // TODO: -inf
 
         for(auto desp: objects) {
             auto& pObj = desp.object;
             auto& shader = pObj->getShader();
 
             auto M = model_transform(desp.pos, desp.dir);
-            auto Transform = GlobalTransform * M;
+            auto SPVM = SPV * M;
 
             for(auto [i1, i2, i3]: pObj->triangles) {
                 auto& v1 = pObj->getVertex(i1);
                 auto& v2 = pObj->getVertex(i2);
                 auto& v3 = pObj->getVertex(i3);
 
-                // TODO 这里有大量重复计算：1. 点多次出现；2. 矩阵运算重复
-                // ? 手动按照定义实现
-                auto pv_z1 = to_vec3_as_pos(V * M * to_vec4_as_pos(v1.pos))[2];
-                auto pv_z2 = to_vec3_as_pos(V * M * to_vec4_as_pos(v2.pos))[2];
-                auto pv_z3 = to_vec3_as_pos(V * M * to_vec4_as_pos(v3.pos))[2];
-
-                auto pos1_vec4 = Transform * to_vec4_as_pos(v1.pos);
-                auto pos2_vec4 = Transform * to_vec4_as_pos(v2.pos);
-                auto pos3_vec4 = Transform * to_vec4_as_pos(v3.pos);
+                auto pos1_vec4 = SPVM * to_vec4_as_pos(v1.pos);
+                auto pos2_vec4 = SPVM * to_vec4_as_pos(v2.pos);
+                auto pos3_vec4 = SPVM * to_vec4_as_pos(v3.pos);
 
                 auto pos1 = to_vec3_as_pos(pos1_vec4);
                 auto pos2 = to_vec3_as_pos(pos2_vec4);
                 auto pos3 = to_vec3_as_pos(pos3_vec4);
 
-                // - 1.0 - + 1.0
                 double fragment_width = 2.0 / width;
                 double fragment_height = 2.0 / height;
 
-                // x_index  = (x + 1) / fragment_width - 0.5
                 int x_min = (min3(pos1[0], pos2[0], pos3[0]) + 1) / fragment_width - 0.5 - 1;
                 int x_max = (max3(pos1[0], pos2[0], pos3[0]) + 1) / fragment_width - 0.5 + 2;
 
@@ -212,7 +213,8 @@ public:
                                 center, 
                                 { pos1[0], pos1[1], 0 }, 
                                 { pos2[0], pos2[1], 0 }, 
-                                { pos3[0], pos3[1], 0 });
+                                { pos3[0], pos3[1], 0 }
+                            );
 
                             double z1 = pos1[2];
                             double z2 = pos2[2];
@@ -220,7 +222,7 @@ public:
 
                             double z = k1 * z1 + k2 * z2 + k3 * z3;;
                             
-                            if(z >= far && z <= near && z > d_buffer[x_index][y_index]) {
+                            if(z <= far && z >= near && z < d_buffer[x_index][y_index]) {
                                 d_buffer[x_index][y_index] = z;
 
                                 auto mem = alloc_mem(v1.fragment_size());
@@ -229,6 +231,7 @@ public:
                                 auto nk2 = k2 / pos2_vec4[3];
                                 auto nk3 = k3 / pos3_vec4[3];
                                 auto nksum = nk1 + nk2 + nk3;
+
                                 auto& fragment = v1.linear_interpolation(
                                     nk2 / nksum, v2,
                                     nk3 / nksum, v3,

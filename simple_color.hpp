@@ -4,8 +4,8 @@
 class ColorProperty: public AbstractInterpolatable {
 public:
     RGBColor color;
-    ColorProperty() = default; // 纯虚基类 vtable ?
-    ColorProperty(const RGBColor& color): color(color) { } /* 这个可以 = default 吗 */
+    ColorProperty() = default; 
+    ColorProperty(const RGBColor& color): color(color) { }
     ColorProperty inversed() const {
         auto out = *this;
         out.color.r = 1.0 / out.color.r;

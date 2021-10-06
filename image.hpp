@@ -49,9 +49,9 @@ public:
 		height(height), 
 		buffer(std::vector<std::vector<RGBColor>>(height, std::vector<RGBColor>(width, RGBColor()))) {}
 
-
+	// [{x, y}], 左下坐标系
 	RGBColor& operator[](const std::pair<int, int>& p) {
-		return buffer[p.second][height - 1 - p.first];
+		return buffer[height - 1 - p.second][p.first];
 	}
 
 	const RGBColor& operator[](const std::pair<int, int>& p) const {

@@ -53,16 +53,7 @@ public:
     virtual const AbstractInterpolatable& getProperties() const = 0;
 
     virtual size_t fragment_size() const = 0;
-    AbstractFragment& perspective_correct_interpolation(
-        double z1, double z2, double z3,
-        double k2, const AbstractVertex& v2, 
-        double k3, const AbstractVertex& v3,
-        void* mem
-    ) const {
-        auto k1 = 1 - k2 - k3;
-        auto zt_inv = k1 / z1 + k2 / z2 + k3 / z3;
-        return linear_interpolation(k2/zt_inv, v2, k3/zt_inv, v3, mem);        
-    }
+    
     virtual AbstractFragment& linear_interpolation(
         double k2, const AbstractVertex& v2, 
         double k3, const AbstractVertex& v3,

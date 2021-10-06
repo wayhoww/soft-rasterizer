@@ -22,18 +22,18 @@ Mat4 view_transform(Vec3 camera_pos, Vec3 camera_dir, Vec3 camera_top) {
     camera_dir.normalize();
     camera_top.normalize();
     
-    Vec3 matrices[] = {
-        cross_product(camera_dir, camera_top),  // x
-        camera_top,                             // y
-        camera_dir * -1,                        // -z
-    };
+    auto mat = Mat3::hcat(
+        cross_product(camera_dir, camera_top),     //  x -> dir x top
+        camera_top,                                //  y -> camera_top
+        camera_dir                                 //  z -> camera_dir
+    ).transposed(); // already transposed
 
     Mat4 mat1;
     Mat4 mat2;
 
     for(int i = 0; i < 3; i++) 
         for(int j = 0; j < 3; j++) 
-            mat1[{j, i}] = matrices[j][{i, 0}];
+            mat1[{i, j}] = mat[{i, j}];
 
     mat1[{3, 3}] = 1;
         
