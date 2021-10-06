@@ -30,7 +30,7 @@ struct RGBColor {
 		return *this;
 	}
 
-	RGBColor operator+(const RGBColor& c) {
+	RGBColor operator+(const RGBColor& c) const {
 		auto out = *this;
 		return out += c;
 	}

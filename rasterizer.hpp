@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <list>
 #include "simple_color.hpp"
 
 template <typename T> 
@@ -25,8 +26,8 @@ public:
     Vec3 pos; // 3 x 1
 };
 
-bool to_left(double xa, double ya, double xb, double yb) {
-    return xa * yb - xb * ya > 0;
+bool to_left(const Vec2& a, const Vec2& b) {
+    return a[0] * b[1] - b[0] * a[1] > 0;
 }
 
 bool in_triangle(const Vec2& pt, const Vec2& v1, const Vec2& v2, const Vec2& v3) {
@@ -39,11 +40,29 @@ bool in_triangle(const Vec2& pt, const Vec2& v1, const Vec2& v2, const Vec2& v3)
     auto e3 = v3 - v1;
     auto p3 = pt - v1;
 
-    auto r1 = to_left(e1[0], e1[1], p1[0], p1[1]);
-    auto r2 = to_left(e2[0], e2[1], p2[0], p2[1]);
-    auto r3 = to_left(e3[0], e3[1], p3[0], p3[1]);
+    auto r1 = to_left(e1, p1);
+    auto r2 = to_left(e2, p2);
+    auto r3 = to_left(e3, p3);
 
     return r1 == r2 && r2 == r3;
+}
+
+std::tuple<double, double, double> bary_centric(
+    const Vec3& center, 
+    const Vec3& v1, 
+    const Vec3& v2, 
+    const Vec3& v3
+    ) {
+    auto area1 = cross_product(center - v2, center - v3).norm2();
+    auto area2 = cross_product(center - v3, center - v1).norm2();
+    auto area3 = cross_product(center - v1, center - v2).norm2();
+
+    auto area_sum = area1 + area2 + area3;
+    double k1 = area1 / area_sum;
+    double k2 = area2 / area_sum;
+    double k3 = area3 / area_sum;
+
+    return {k1, k2, k3};
 }
 
 template <typename T> 
@@ -57,9 +76,58 @@ double deg_to_rad(double deg) {
 
 template<typename Uniform>
 class Rasterizer {
+    static constexpr int POOL_SIZE = 1024 * 1024 * 4; // 4MB per pool
+    std::list<void*> fragment_pools;    // 这里，没有重复利用！
+    decltype(fragment_pools.begin()) pool_it = fragment_pools.begin(); // TODO: 顺序
+    size_t mem_index = 0;
+
+    void reset_mem() {
+        pool_it = fragment_pools.begin();
+        mem_index = 0;
+    }
+
+    void* alloc_mem(size_t size) {
+        if(size > POOL_SIZE) {
+            throw "fragment size is too large.";
+        }
+
+        if(pool_it != fragment_pools.end() && mem_index + size > POOL_SIZE) {
+            pool_it++;
+            mem_index = 0;
+        }
+        
+        // 如果当前有 pool，那么空间一定足够
+        
+        if(pool_it == fragment_pools.end()) {
+            pool_it = fragment_pools.insert(pool_it, malloc(POOL_SIZE));
+            mem_index = 0;
+        }
+        
+        // 那么当前一定有 pool
+
+        void* out = (void*)((char*)*pool_it + mem_index);
+        mem_index += size;
+        return out;
+    }
+
 public:
     std::vector<ObjectDescriptor> objects;
     Uniform uniform;
+
+    Rasterizer() = default;
+    Rasterizer(const Rasterizer& r): objects(r.objects), uniform(r.uniform) {}
+    Rasterizer(Rasterizer&& r): objects(std::move(r.objects)), uniform(std::move(r.uniform)) {}
+    Rasterizer& operator=(const Rasterizer& r) {
+        objects = r.objects;
+        uniform = r.uniform;
+        return *this;
+    }
+    ~Rasterizer() {
+        for(auto ptr: fragment_pools) {
+            free(ptr);
+            ptr = nullptr;
+        }
+    }
 
     Image rasterize(
         const Vec3& camera_pos,
@@ -71,7 +139,7 @@ public:
         double aspect_ratio,
         int width,           // 和实际的图片大小有关
         int height           // width / height == aspect ratio should hold
-    ) const {
+    ) /* const cast here */ {
         // inspect the feature of projection transform
         near = -near;
         far = -far;
@@ -89,12 +157,12 @@ public:
         auto P = projection_transform(near, far);
         auto GlobalTransform = Screen * P * V;
 
-        auto f_buffer = matrix_of_size<std::pair<std::shared_ptr<AbstractFragment>, const AbstractShader*>>(width, height, std::make_pair(nullptr, nullptr));
-        auto d_buffer = matrix_of_size<double>(width, height, -1e9);
+        auto f_buffer = matrix_of_size<std::pair<const AbstractFragment*, const AbstractShader*>>(width, height, std::make_pair(nullptr, nullptr));
+        auto d_buffer = matrix_of_size<double>(width, height, -1e9); // TODO: -inf
 
         for(auto desp: objects) {
             auto& pObj = desp.object;
-            auto shader = pObj->getShader();
+            auto& shader = pObj->getShader();
 
             auto M = model_transform(desp.pos, desp.dir);
             auto Transform = GlobalTransform * M;
@@ -104,9 +172,19 @@ public:
                 auto& v2 = pObj->getVertex(i2);
                 auto& v3 = pObj->getVertex(i3);
 
-                auto pos1 = to_vec3_as_pos(Transform * to_vec4_as_pos(v1.pos));
-                auto pos2 = to_vec3_as_pos(Transform * to_vec4_as_pos(v2.pos));
-                auto pos3 = to_vec3_as_pos(Transform * to_vec4_as_pos(v3.pos));
+                // TODO 这里有大量重复计算：1. 点多次出现；2. 矩阵运算重复
+                // ? 手动按照定义实现
+                auto pv_z1 = to_vec3_as_pos(V * M * to_vec4_as_pos(v1.pos))[2];
+                auto pv_z2 = to_vec3_as_pos(V * M * to_vec4_as_pos(v2.pos))[2];
+                auto pv_z3 = to_vec3_as_pos(V * M * to_vec4_as_pos(v3.pos))[2];
+
+                auto pos1_vec4 = Transform * to_vec4_as_pos(v1.pos);
+                auto pos2_vec4 = Transform * to_vec4_as_pos(v2.pos);
+                auto pos3_vec4 = Transform * to_vec4_as_pos(v3.pos);
+
+                auto pos1 = to_vec3_as_pos(pos1_vec4);
+                auto pos2 = to_vec3_as_pos(pos2_vec4);
+                auto pos3 = to_vec3_as_pos(pos3_vec4);
 
                 // - 1.0 - + 1.0
                 double fragment_width = 2.0 / width;
@@ -130,20 +208,11 @@ public:
                         Vec2 vs2dim3 { pos3[0], pos3[1] }; 
                         if(in_triangle(pt, vs2dim1, vs2dim2, vs2dim3)) {
                             Vec3 center {x, y, 0};
-                            auto vs1 = pos1;
-                            auto vs2 = pos2;
-                            auto vs3 = pos3;
-                            vs1[2] = vs2[2] = vs3[2] = 0;
-
-                            auto area1 = cross_product(center - vs2, center - vs3).norm2();
-                            auto area2 = cross_product(center - vs3, center - vs1).norm2();
-                            auto area3 = cross_product(center - vs1, center - vs2).norm2();
-
-                            auto area_sum = area1 + area2 + area3;
-                            double k1 = area1 / area_sum;
-                            double k2 = area2 / area_sum;
-                            double k3 = area3 / area_sum;
-                            // TODO 透视修正插值
+                            auto [k1, k2, k3] = bary_centric(
+                                center, 
+                                { pos1[0], pos1[1], 0 }, 
+                                { pos2[0], pos2[1], 0 }, 
+                                { pos3[0], pos3[1], 0 });
 
                             double z1 = pos1[2];
                             double z2 = pos2[2];
@@ -153,16 +222,20 @@ public:
                             
                             if(z >= far && z <= near && z > d_buffer[x_index][y_index]) {
                                 d_buffer[x_index][y_index] = z;
-                                
-                                auto fragment = v1.initFragment();
-                                v1.getProperties()
-                                    .linear_interpolate_with(
-                                        k2, v2.getProperties(),
-                                        k3, v3.getProperties(),
-                                        fragment->getProperties()
-                                    );
 
-                                f_buffer[x_index][y_index].first = fragment;
+                                auto mem = alloc_mem(v1.fragment_size());
+                                
+                                auto nk1 = k1 / pos1_vec4[3];
+                                auto nk2 = k2 / pos2_vec4[3];
+                                auto nk3 = k3 / pos3_vec4[3];
+                                auto nksum = nk1 + nk2 + nk3;
+                                auto& fragment = v1.linear_interpolation(
+                                    nk2 / nksum, v2,
+                                    nk3 / nksum, v3,
+                                    mem
+                                );
+
+                                f_buffer[x_index][y_index].first = &fragment;
                                 f_buffer[x_index][y_index].second = &pObj->getShader();
                             }   
                         }

@@ -3,19 +3,22 @@
 
 class ColorProperty: public AbstractInterpolatable {
 public:
-    ColorProperty() {} // 纯虚基类 vtable ?
-    ColorProperty(const RGBColor& color): color(color){}
     RGBColor color;
-    virtual void linear_interpolate_with (
-        double k2, const AbstractInterpolatable& a2, 
-        double k3, const AbstractInterpolatable& a3,
-        AbstractInterpolatable& dest
-    ) const {
-        auto r2 = dynamic_cast<const ColorProperty&>(a2);
-        auto r3 = dynamic_cast<const ColorProperty&>(a3);
-        auto rd = dynamic_cast<ColorProperty*>(&dest); // why cannot &
-        rd->color = this->color*(1-k2-k3) + k2*r2.color + k3*r3.color;
+    ColorProperty() = default; // 纯虚基类 vtable ?
+    ColorProperty(const RGBColor& color): color(color) { } /* 这个可以 = default 吗 */
+    ColorProperty inversed() const {
+        auto out = *this;
+        out.color.r = 1.0 / out.color.r;
+        out.color.g = 1.0 / out.color.g;
+        out.color.b = 1.0 / out.color.b;
+        return out;
     }
+    ColorProperty operator+(const ColorProperty& rhs) const { 
+        return ColorProperty(this->color + rhs.color); 
+    }
+    ColorProperty operator*(double k) const { 
+        return ColorProperty(this->color * k); 
+    };
 };
 
 class ColorShader: public Shader<ColorProperty, NothingUniform> {

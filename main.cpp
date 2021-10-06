@@ -100,7 +100,19 @@ ColorObject getColorObj() {
 	return obj;
 }
 
+#include <list>
+
 int main() {
+	{
+		std::list<int> list;
+		auto it = list.begin();
+		auto temp1 = it == list.end();
+		list.push_back(1);
+		auto temp2 = it == list.end();
+		//
+	}
+
+
 	GrayObject obj1 = getGrayObj();
 	ColorObject obj2 = getColorObj();
 
