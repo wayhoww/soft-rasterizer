@@ -34,6 +34,13 @@ struct RGBColor {
 		auto out = *this;
 		return out += c;
 	}
+
+	RGBColor& clip() {
+		r = std::max<double>(0, std::min<double>(r, 1));
+		g = std::max<double>(0, std::min<double>(g, 1));
+		b = std::max<double>(0, std::min<double>(b, 1));
+		return *this;
+	}
 };
 
 RGBColor operator*(double k, const RGBColor& c);

@@ -74,6 +74,11 @@ double deg_to_rad(double deg) {
     return deg / 180 * acos(-1.0);
 }
 
+
+// Object<Uniform, Attribute, Property, Shader>
+// VertexData<Attribute> --- VertexShader<Attribute, Uniform> --> Vertex<Property> --- 
+// --- Fragment<Vertex> --> RGBColor
+
 template<typename Uniform>
 class Rasterizer {
     static constexpr int POOL_SIZE = 1024 * 1024 * 4; // 4MB per pool
@@ -130,13 +135,13 @@ public:
         }
     }
 
-    template<typename P, typename ShaderT>
+    template<typename T, typename P, typename VShaderT, typename FShaderT>
     Rasterizer& addObject(
-        const Object<P, Uniform, ShaderT>& obj, 
+        const Object<T, P, Uniform, VShaderT, FShaderT>& obj, 
         const Mat3& dir, 
         const Vec3& pos
     ) {
-        objects.push_back(ObjectDescriptor{std::make_shared<Object<P, Uniform, ShaderT>>(obj), dir, pos});
+        objects.push_back(ObjectDescriptor{std::make_shared<Object<T, P, Uniform, VShaderT, FShaderT>>(obj), dir, pos});
         return *this;
     }
 
@@ -166,20 +171,23 @@ public:
         auto P = projection_transform(near, far);
         auto SPV = S * P * V;
 
-        auto f_buffer = matrix_of_size<std::pair<const AbstractFragment*, const AbstractShader*>>(width, height, std::make_pair(nullptr, nullptr));
+        auto f_buffer = matrix_of_size<std::pair<const AbstractFragment*, const AbstractFShader*>>(width, height, std::make_pair(nullptr, nullptr));
         auto d_buffer = matrix_of_size<double>(width, height, far + 1); // TODO: -inf
 
         for(auto desp: objects) {
             auto& pObj = desp.object;
-            auto& shader = pObj->getShader();
+            auto& vShader = pObj->getVShader();
+            auto& fShader = pObj->getFShader();
 
             auto M = model_transform(desp.pos, desp.dir);
             auto SPVM = SPV * M;
 
             for(auto [i1, i2, i3]: pObj->triangles) {
-                auto& v1 = pObj->getVertex(i1);
-                auto& v2 = pObj->getVertex(i2);
-                auto& v3 = pObj->getVertex(i3);
+                const int VertexSize = pObj->getVShader().vertexSize();
+                char* mem = (char*) alloc_mem (VertexSize * 3);
+                auto& v1 = vShader.shade(pObj->getVertexData(i1), uniform, M, mem + 0 * VertexSize);
+                auto& v2 = vShader.shade(pObj->getVertexData(i2), uniform, M, mem + 1 * VertexSize);
+                auto& v3 = vShader.shade(pObj->getVertexData(i3), uniform, M, mem + 2 * VertexSize);
 
                 auto pos1_vec4 = SPVM * to_vec4_as_pos(v1.pos);
                 auto pos2_vec4 = SPVM * to_vec4_as_pos(v2.pos);
@@ -239,7 +247,7 @@ public:
                                 );
 
                                 f_buffer[x_index][y_index].first = &fragment;
-                                f_buffer[x_index][y_index].second = &pObj->getShader();
+                                f_buffer[x_index][y_index].second = &pObj->getFShader();
                             }   
                         }
                     }

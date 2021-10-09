@@ -7,6 +7,7 @@
 #include "matrix.hpp"
 #include "image.hpp"
 
+
 class AbstractInterpolatable {
 public:
     virtual ~AbstractInterpolatable() {}
@@ -22,6 +23,7 @@ concept Interpolatable = requires(const T& a, double k) {
 
 class AbstractFragment {
 public:
+    Vec3 pos;
     virtual AbstractInterpolatable& getProperties() = 0;
     virtual const AbstractInterpolatable& getProperties() const = 0;
     virtual ~AbstractFragment() {}
@@ -89,24 +91,27 @@ public:
         
         auto p = p1 * k1 + p2 * k2 + p3 * k3;
 
-        return *new (mem) Fragment(p); // TODO operator new 要多大空间？
+        auto frag = new (mem) Fragment(p); // TODO operator new 要多大空间？(对的)
+        frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
+
+        return *frag;
     }
 };  
 
 // TODO：Object<DerivedUniform> < Object<BaseUniform>
-class AbstractShader {
+class AbstractFShader {
 public:
-    virtual ~AbstractShader() {}
+    virtual ~AbstractFShader() {}
     virtual RGBColor shade(const AbstractFragment& fragment, const std::any& uniform) const = 0;
 };
 
 template <typename P, typename Uniform>
 requires Interpolatable<P>
-class Shader: public AbstractShader {
+class FShader: public AbstractFShader {
 public:
     // Shader 因此是一个抽象类，无法实例化。TODO：可以看一下如何用 Module 阻止用户直接继承 AbstractShader
     virtual RGBColor shade(const Fragment<P>& fragment, const Uniform& uniform) const = 0;
-    RGBColor shade(const AbstractFragment& fragment, const std::any& uniform) const {
+    virtual RGBColor shade(const AbstractFragment& fragment, const std::any& uniform) const override {
         auto& n_frag = dynamic_cast<const Fragment<P>&>(fragment);
         auto n_uniform = std::any_cast<Uniform>(uniform);
         return shade(n_frag, n_uniform);
@@ -114,32 +119,71 @@ public:
 };
 // how to use: subclassing a specific Shader<T, U> and than write the shade function
 
+
+// TODO：Object<DerivedUniform> < Object<BaseUniform>
+class AbstractVShader {
+public:
+    virtual ~AbstractVShader() {}
+    virtual AbstractVertex& shade(const std::any& data, const std::any& uniform, const Mat4& M, void* mem) const = 0;
+    virtual size_t vertexSize() const = 0; 
+};
+
+template <typename VertexDataT, typename P, typename Uniform>
+requires Interpolatable<P>
+class VShader: public AbstractVShader {
+public:
+    virtual Vertex<P> shade(const VertexDataT& data, const Uniform& uniform, const Mat4& M) const = 0;
+    virtual size_t vertexSize() const override {
+        return sizeof(Vertex<P>);
+    }
+    // TODO 这个 M 应该怎么处理比较好
+    virtual AbstractVertex& shade(
+        const std::any& data, 
+        const std::any& uniform, 
+        const Mat4& M, 
+        void* mem
+    ) const {
+        auto n_data = std::any_cast<VertexDataT>(data);
+        auto n_uniform = std::any_cast<Uniform>(uniform);
+        Vertex<P> vertex = shade(n_data, n_uniform, M);
+        memcpy(mem, &vertex, sizeof(vertex));
+        return *static_cast<AbstractVertex*>(mem);
+    }
+};
+
 class AbstractObject {
 public:
     std::vector<std::tuple<int, int, int>> triangles;
     
-    virtual const AbstractVertex& getVertex(int) const = 0;
-    virtual const AbstractShader& getShader() const = 0;
+    virtual const std::any getVertexData(int) const = 0;
+    virtual const AbstractVShader& getVShader() const = 0;
+    virtual const AbstractFShader& getFShader() const = 0;
     virtual ~AbstractObject() {}
 };
 
+
 // TODO: 没必要和 ShaderT 绑定了
-template <typename P, typename Uniform, typename ShaderT>
-requires Interpolatable<P> && std::derived_from<ShaderT, Shader<P, Uniform>>
+template <typename A, typename P, typename Uniform, typename VShaderT, typename FShaderT>
+requires Interpolatable<P> && std::derived_from<FShaderT, FShader<P, Uniform>>
 class Object: public AbstractObject {
 public:
-
+    VShaderT vshader;
+    FShaderT fshader;
+    std::vector<A> vertices;
+    
     Object() {}
 
-    std::vector<Vertex<P>> vertices;
-    
-    const AbstractVertex& getVertex(int index) const {
-        return vertices[index];
+    virtual const std::any getVertexData(int index) const override {
+        A vert = vertices[index];
+        std::any val = vert;
+        return val;
     }
 
-    ShaderT shader;
-    const AbstractShader& getShader() const {
-        return shader;
+    virtual const AbstractVShader& getVShader() const override {
+        return vshader;
+    }
+    virtual const AbstractFShader& getFShader() const override {
+        return fshader;
     }
 };
 

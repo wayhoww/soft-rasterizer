@@ -5,27 +5,19 @@
 #include "OBJ_Loader.h"
 #include "simple_gray.hpp"
 #include "simple_color.hpp"
-
+#include "blinn_phong.hpp"
+/*
 GrayObject getGrayObj() {
 	GrayObject obj;
 
-	Vec3 pt0{+1, -1, -1};
-	Vec3 pt1{+1, +1, -1};
-	Vec3 pt2{-1, +1, -1};
-	Vec3 pt3{-1, -1, -1};
-	Vec3 pt4{+1, -1, +1};
-	Vec3 pt5{+1, +1, +1};
-	Vec3 pt6{-1, +1, +1};
-	Vec3 pt7{-1, -1, +1};
-
-	obj.vertices.push_back(Vertex<NothingProperty>(pt0, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt1, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt2, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt3, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt4, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt5, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt6, NothingProperty()));
-	obj.vertices.push_back(Vertex<NothingProperty>(pt7, NothingProperty()));
+	obj.vertices.push_back({+1, -1, -1});
+	obj.vertices.push_back({+1, +1, -1});
+	obj.vertices.push_back({-1, +1, -1});
+	obj.vertices.push_back({-1, -1, -1});
+	obj.vertices.push_back({+1, -1, +1});
+	obj.vertices.push_back({+1, +1, +1});
+	obj.vertices.push_back({-1, +1, +1});
+	obj.vertices.push_back({-1, -1, +1});
 
 	obj.triangles.push_back({0, 1, 2});
 	obj.triangles.push_back({0, 3, 2});
@@ -45,91 +37,142 @@ GrayObject getGrayObj() {
 	obj.triangles.push_back({4, 5, 6});
 	obj.triangles.push_back({4, 7, 6});
 
-	obj.shader = GrayShader();
+	obj.vshader = GrayVShader();
+	obj.fshader = GrayFShader();
 	return obj;
-}
+}*/
 
-RGBColor rand_color() {
-	return {
-		(rand() % 255) / 255.0,
-		(rand() % 255) / 255.0,
-		(rand() % 255) / 255.0
-	};
-}
+// RGBColor rand_color() {
+// 	return {
+// 		(rand() % 255) / 255.0,
+// 		(rand() % 255) / 255.0,
+// 		(rand() % 255) / 255.0
+// 	};
+// }
 
-ColorObject getColorObj() {
-	ColorObject obj;
+// ColorObject getColorObj() {
+// 	ColorObject obj;
 
-	Vec3 pt0{+1, -1, -1};
-	Vec3 pt1{+1, +1, -1};
-	Vec3 pt2{-1, +1, -1};
-	Vec3 pt3{-1, -1, -1};
-	Vec3 pt4{+1, -1, +1};
-	Vec3 pt5{+1, +1, +1};
-	Vec3 pt6{-1, +1, +1};
-	Vec3 pt7{-1, -1, +1};
+// 	Vec3 pt0{+1, -1, -1};
+// 	Vec3 pt1{+1, +1, -1};
+// 	Vec3 pt2{-1, +1, -1};
+// 	Vec3 pt3{-1, -1, -1};
+// 	Vec3 pt4{+1, -1, +1};
+// 	Vec3 pt5{+1, +1, +1};
+// 	Vec3 pt6{-1, +1, +1};
+// 	Vec3 pt7{-1, -1, +1};
 
-	obj.vertices.push_back(Vertex<ColorProperty>(pt0, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt1, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt2, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt3, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt4, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt5, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt6, ColorProperty(rand_color())));
-	obj.vertices.push_back(Vertex<ColorProperty>(pt7, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt0, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt1, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt2, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt3, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt4, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt5, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt6, ColorProperty(rand_color())));
+// 	obj.vertices.push_back(Vertex<ColorProperty>(pt7, ColorProperty(rand_color())));
 
-	obj.triangles.push_back({0, 1, 2});
-	obj.triangles.push_back({0, 3, 2});
+// 	obj.triangles.push_back({0, 1, 2});
+// 	obj.triangles.push_back({0, 3, 2});
 
-	obj.triangles.push_back({1, 3, 0});
-	obj.triangles.push_back({1, 4, 0});
+// 	obj.triangles.push_back({1, 3, 0});
+// 	obj.triangles.push_back({1, 4, 0});
 
-	obj.triangles.push_back({2, 3, 7});
-	obj.triangles.push_back({2, 6, 7});
+// 	obj.triangles.push_back({2, 3, 7});
+// 	obj.triangles.push_back({2, 6, 7});
 
-	obj.triangles.push_back({1, 2, 6});
-	obj.triangles.push_back({1, 5, 6});
+// 	obj.triangles.push_back({1, 2, 6});
+// 	obj.triangles.push_back({1, 5, 6});
 
-	obj.triangles.push_back({1, 0, 4});
-	obj.triangles.push_back({1, 5, 4});
+// 	obj.triangles.push_back({1, 0, 4});
+// 	obj.triangles.push_back({1, 5, 4});
 
-	obj.triangles.push_back({4, 5, 6});
-	obj.triangles.push_back({4, 7, 6});
+// 	obj.triangles.push_back({4, 5, 6});
+// 	obj.triangles.push_back({4, 7, 6});
 
-	obj.shader = ColorShader();
+// 	obj.shader = ColorShader();
 
-	return obj;
-}
+// 	return obj;
+// }
 
-template <typename Uniform, typename Shader> /* 里面有限制 Shader 类型了 */
-Object<NothingProperty, Uniform, Shader> // TODO color ->
+template <typename P, typename Uniform, typename VShaderT, typename FShaderT> /* 里面有限制 Shader 类型了 */
+Object<objl::Vertex, P, Uniform, VShaderT, FShaderT> // TODO color ->
 create_object_from_obj_loader_mesh(const objl::Mesh& mesh) {
-	Object<NothingProperty, Uniform, Shader> object;
+	Object<objl::Vertex, P, Uniform, VShaderT, FShaderT> object;
 	for(int i = 0; i < mesh.Indices.size(); i += 3) 
 		object.triangles.push_back({mesh.Indices[i], mesh.Indices[i+1], mesh.Indices[i+2]});
 	
-	for(const auto& vertex: mesh.Vertices) {
-		Vertex<NothingProperty> vert;
-		vert.pos = { vertex.Position.X, vertex.Position.Y, vertex.Position.Y };
-		object.vertices.push_back(vert);
-	}
+	object.vertices = mesh.Vertices;
 	return object;
 }
 
 int main() {
 	objl::Loader loader;
-	loader.LoadFile("Keqing.obj");
+	loader.LoadFile("BCY.obj");
 	std::cout << "loaded: " << loader.LoadedMeshes.size() << " meshes" << std::endl;
-
-	Rasterizer<NothingUniform> rasterizer;
+	
+	
+	Rasterizer<BlinnPhongUniform> rasterizer;
 	for(auto mesh: loader.LoadedMeshes) {
-		auto loadedObject = create_object_from_obj_loader_mesh<NothingUniform, GrayShader>(mesh);
+		auto loadedObject = create_object_from_obj_loader_mesh<
+			BlinnPhongProperty,
+			BlinnPhongUniform,
+			BlinnPhongVShader,
+			BlinnPhongFShader
+		>(mesh);
 		rasterizer.addObject(loadedObject, { {1, 0, 0}, {0, 1, 0 }, {0, 0, 1 } }, { 0, 0, 0 });
 	}
+
+	BlinnPhongUniform uniform;
+	uniform.lights.push_back(Light{
+		{-0.4 * 7, 2.0 * 7, 1.2 * 7},
+		RGBColor{3, 3, 3}
+	});
+	rasterizer.uniform = uniform;
 	
 	rasterizer.rasterize(
-		{0, 5, 40},				// pos
-		{0, 0, -1},				// dir
+		Vec3{2, 9, 10} * (1 / 1.2),				// pos
+		{-0.2, -0.2, -1},				// dir
+		{0, 1,  0},				// top
+		0.1,
+		200,
+		deg_to_rad(90),
+		1,
+	    1600,
+		1600
+	).save("image_loaded.bmp");
+
+	/*
+	BlinnPhongUniform uniform;
+	uniform.lights.push_back(Light{
+		{-0.4 * 2, 2.0 * 2, 1.2 * 2},
+		RGBColor{2, 2, 2}
+	});
+	rasterizer.uniform = uniform;
+	
+	rasterizer.rasterize(
+		{0.2, 0.9, 1.2},				// pos
+		{-0.2, -0.2, -1},				// dir
+		{0, 1,  0},				// top
+		0.1,
+		200,
+		deg_to_rad(90),
+		1,
+		1600,
+		1600
+	).save("image_loaded.bmp");
+	*/
+
+	/*
+	BlinnPhongUniform uniform;
+	uniform.lights.push_back(Light{
+		{-4, 20, 12},
+		RGBColor{6, 6, 6}
+	});
+	rasterizer.uniform = uniform;
+	
+	rasterizer.rasterize(
+		{0, 12, 12},				// pos
+		{0, -0.2, -1},				// dir
 		{0, 1,  0},				// top
 		0.1,
 		200,
@@ -138,6 +181,7 @@ int main() {
 		800,
 		800
 	).save("image_loaded.bmp");
+	*/
 }
 
 

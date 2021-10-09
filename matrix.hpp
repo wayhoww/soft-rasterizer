@@ -155,14 +155,18 @@ public:
         return *this;
     }
 
-    double norm2() const {
+    double norm2_squared() const {
         double sum = 0;
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
                 sum += data[i][j] * data[i][j];
             }
         }
-        return sqrt(sum);
+        return sum;
+    }
+
+    double norm2() const {
+        return sqrt(norm2_squared());
     }
 
     Matrix& operator/=(double x) {
@@ -173,7 +177,7 @@ public:
         return (*this) /= norm2();
     }
 
-    Matrix normalized() requires ( N == 1 ) {
+    Matrix normalized() const requires ( N == 1 ) {
         auto out = *this;
         return out /= norm2();
     }
@@ -194,6 +198,15 @@ Vec3 cross_product(const Vec3& vec31, const Vec3& vec32) {
     mat[2] = vec31[0] * vec32[1] - vec32[0] * vec31[1];
     return mat;
 }
+
+template <int dim> 
+double dot_product(const Matrix<dim, 1>& vec1, const Matrix<dim, 1>& vec2) {
+    double sum = 0;
+    for(int i = 0; i < dim; i++) {
+        sum += vec1[i] * vec2[i];
+    }
+    return sum;
+};
 
 Vec4 to_vec4_as_pos(const Vec3& vec) {
     Vec4 mat;
