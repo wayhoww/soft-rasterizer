@@ -2,6 +2,7 @@
 #include "image.hpp"
 #include "matrix.hpp"
 #include "rasterizer.hpp"
+#include "OBJ_Loader.h"
 #include "simple_gray.hpp"
 #include "simple_color.hpp"
 
@@ -100,18 +101,47 @@ ColorObject getColorObj() {
 	return obj;
 }
 
-#include <list>
+template <typename Uniform, typename Shader> /* 里面有限制 Shader 类型了 */
+Object<NothingProperty, Uniform, Shader> // TODO color ->
+create_object_from_obj_loader_mesh(const objl::Mesh& mesh) {
+	Object<NothingProperty, Uniform, Shader> object;
+	for(int i = 0; i < mesh.Indices.size(); i += 3) 
+		object.triangles.push_back({mesh.Indices[i], mesh.Indices[i+1], mesh.Indices[i+2]});
+	
+	for(const auto& vertex: mesh.Vertices) {
+		Vertex<NothingProperty> vert;
+		vert.pos = { vertex.Position.X, vertex.Position.Y, vertex.Position.Y };
+		object.vertices.push_back(vert);
+	}
+	return object;
+}
 
 int main() {
-	{
-		std::list<int> list;
-		auto it = list.begin();
-		auto temp1 = it == list.end();
-		list.push_back(1);
-		auto temp2 = it == list.end();
-		//
-	}
+	objl::Loader loader;
+	loader.LoadFile("Keqing.obj");
+	std::cout << "loaded: " << loader.LoadedMeshes.size() << " meshes" << std::endl;
 
+	Rasterizer<NothingUniform> rasterizer;
+	for(auto mesh: loader.LoadedMeshes) {
+		auto loadedObject = create_object_from_obj_loader_mesh<NothingUniform, GrayShader>(mesh);
+		rasterizer.addObject(loadedObject, { {1, 0, 0}, {0, 1, 0 }, {0, 0, 1 } }, { 0, 0, 0 });
+	}
+	
+	rasterizer.rasterize(
+		{0, 5, 40},				// pos
+		{0, 0, -1},				// dir
+		{0, 1,  0},				// top
+		0.1,
+		200,
+		deg_to_rad(90),
+		1,
+		800,
+		800
+	).save("image_loaded.bmp");
+}
+
+
+/*
 
 	GrayObject obj1 = getGrayObj();
 	ColorObject obj2 = getColorObj();
@@ -124,14 +154,9 @@ int main() {
 		{0, 0, 1}
 	};
 
-
-	ObjectDescriptor desp1{ std::make_shared<GrayObject>(obj1), obj_dir, obj_pos1 };
-	ObjectDescriptor desp2{ std::make_shared<ColorObject>(obj2), obj_dir, obj_pos2 };
-
-
 	// cannot guarentee objects are NothingUniform acceptable
 	Rasterizer<NothingUniform> rasterizer;
-	rasterizer.addObject(obj1, obj_dir, obj_pos1);
+	rasterizer.addObject(loadedObject, obj_dir, obj_pos1);
 	rasterizer.addObject(obj2, obj_dir, obj_pos2);
 
 	Vec3 camera_pos{ 0, 3, 9 };
@@ -155,4 +180,5 @@ int main() {
 	image.save("b.bmp");
 
 	getchar();
-}
+
+*/

@@ -65,6 +65,7 @@ template <typename P>
 requires Interpolatable<P>
 class Vertex: public AbstractVertex {
 public:
+    Vertex() = default;
     Vertex(const Vec3& pos, const P& properties): AbstractVertex(pos), properties(properties) {}
     P properties;
     virtual AbstractInterpolatable& getProperties() override { return properties; }
