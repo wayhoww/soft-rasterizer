@@ -1,7 +1,7 @@
 #define cimg_display 0
 
 #include "image.hpp"
-#include <CImg.h>
+#include "CImg.h"
 
 
 void Image::save(const std::string& filename) const {

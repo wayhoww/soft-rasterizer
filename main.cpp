@@ -1,66 +1,19 @@
 #include <iostream>
+#include <algorithm>
 #include "image.hpp"
 #include "matrix.hpp"
 #include "rasterizer.hpp"
 #include "OBJ_Loader.h"
 #include "blinn_phong.hpp"
+#include "assimp_importer.hpp"
+#include "ld_obj_loader.hpp"
+#include "utils.hpp"
 
-template <typename P, typename Uniform, typename VShaderT, typename FShaderT> /* 里面有限制 Shader 类型了 */
-Object<BlinnPhongAttribute, P, Uniform, VShaderT, FShaderT> // TODO color ->
-create_object_from_obj_loader_mesh(const objl::Loader& loader, size_t index, const std::string& obj_path) {
-	auto& mesh = loader.LoadedMeshes[index];
-	Object<BlinnPhongAttribute, P, Uniform, VShaderT, FShaderT> object;
-	for(int i = 0; i < mesh.Indices.size(); i += 3) 
-		object.triangles.push_back({mesh.Indices[i], mesh.Indices[i+1], mesh.Indices[i+2]});
-	
-	auto basepath = obj_path.substr(0, obj_path.find_last_of('/'));
-	auto map_Kd = std::make_shared<Image>(basepath + "/" + mesh.MeshMaterial.map_Kd);
-	for(auto vert: mesh.Vertices) {
-		BlinnPhongAttribute attr;
-		attr.vertex = vert;
-		attr.map_Kd = map_Kd;
-		object.vertices.push_back(attr);
-	}
-	return object;
-}
-
-std::vector<std::string> split(const std::string& line, char c) {
-	std::vector<std::string> components;
-	size_t pos = 0;
-	do {
-		size_t npos = line.find(c, pos);
-		if(npos != std::string::npos) {
-			components.push_back(line.substr(pos, npos - pos));
-		} else {
-			components.push_back(line.substr(pos));
-			break;
-		}
-		pos = npos + 1;
-	} while (true);
-	return components;
-}
-
-std::string trimmed(const std::string& str) {
-	std::string out;
-	bool first_non_empty_occurred = false;
-	for(int i = 0; i < str.size(); i++) {
-		if(str[i] != ' ') first_non_empty_occurred = true;
-		if(first_non_empty_occurred) {
-			out.push_back(str[i]);
-		}
-	}
-	first_non_empty_occurred = false;
-	int i;
-	for(i = out.size() - 1; i >= 0; i--) {
-		if(out[i] != ' ') {
-			break;
-		}
-	}
-	out.reserve(i + 1);
-	return out;
-}
 
 int main() {
+
+	DoTheImportThing("");
+
 	objl::Loader loader;
 	Rasterizer<BlinnPhongUniform> rasterizer;
 	Vec3 camera_pos {0, 0, 10};
@@ -72,6 +25,7 @@ int main() {
 	double aspect_ratio = 1;
 	int width = 1000;
 	int height = 1000; // 这两个量也是关联的
+
 	std::string filename = "out.bmp";
 	std::string modelpath = "Keqing/Keqing.obj";
 
@@ -84,7 +38,7 @@ int main() {
 	using namespace std;
 	
 	while(true) {
-		cout << "objv > ";
+		cout << "objv> ";
 
 		string line;
 		getline(cin, line);
