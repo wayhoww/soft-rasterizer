@@ -3,96 +3,7 @@
 #include "matrix.hpp"
 #include "rasterizer.hpp"
 #include "OBJ_Loader.h"
-#include "simple_gray.hpp"
-#include "simple_color.hpp"
 #include "blinn_phong.hpp"
-/*
-GrayObject getGrayObj() {
-	GrayObject obj;
-
-	obj.vertices.push_back({+1, -1, -1});
-	obj.vertices.push_back({+1, +1, -1});
-	obj.vertices.push_back({-1, +1, -1});
-	obj.vertices.push_back({-1, -1, -1});
-	obj.vertices.push_back({+1, -1, +1});
-	obj.vertices.push_back({+1, +1, +1});
-	obj.vertices.push_back({-1, +1, +1});
-	obj.vertices.push_back({-1, -1, +1});
-
-	obj.triangles.push_back({0, 1, 2});
-	obj.triangles.push_back({0, 3, 2});
-
-	obj.triangles.push_back({1, 3, 0});
-	obj.triangles.push_back({1, 4, 0});
-
-	obj.triangles.push_back({2, 3, 7});
-	obj.triangles.push_back({2, 6, 7});
-
-	obj.triangles.push_back({1, 2, 6});
-	obj.triangles.push_back({1, 5, 6});
-
-	obj.triangles.push_back({1, 0, 4});
-	obj.triangles.push_back({1, 5, 4});
-
-	obj.triangles.push_back({4, 5, 6});
-	obj.triangles.push_back({4, 7, 6});
-
-	obj.vshader = GrayVShader();
-	obj.fshader = GrayFShader();
-	return obj;
-}*/
-
-// RGBColor rand_color() {
-// 	return {
-// 		(rand() % 255) / 255.0,
-// 		(rand() % 255) / 255.0,
-// 		(rand() % 255) / 255.0
-// 	};
-// }
-
-// ColorObject getColorObj() {
-// 	ColorObject obj;
-
-// 	Vec3 pt0{+1, -1, -1};
-// 	Vec3 pt1{+1, +1, -1};
-// 	Vec3 pt2{-1, +1, -1};
-// 	Vec3 pt3{-1, -1, -1};
-// 	Vec3 pt4{+1, -1, +1};
-// 	Vec3 pt5{+1, +1, +1};
-// 	Vec3 pt6{-1, +1, +1};
-// 	Vec3 pt7{-1, -1, +1};
-
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt0, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt1, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt2, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt3, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt4, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt5, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt6, ColorProperty(rand_color())));
-// 	obj.vertices.push_back(Vertex<ColorProperty>(pt7, ColorProperty(rand_color())));
-
-// 	obj.triangles.push_back({0, 1, 2});
-// 	obj.triangles.push_back({0, 3, 2});
-
-// 	obj.triangles.push_back({1, 3, 0});
-// 	obj.triangles.push_back({1, 4, 0});
-
-// 	obj.triangles.push_back({2, 3, 7});
-// 	obj.triangles.push_back({2, 6, 7});
-
-// 	obj.triangles.push_back({1, 2, 6});
-// 	obj.triangles.push_back({1, 5, 6});
-
-// 	obj.triangles.push_back({1, 0, 4});
-// 	obj.triangles.push_back({1, 5, 4});
-
-// 	obj.triangles.push_back({4, 5, 6});
-// 	obj.triangles.push_back({4, 7, 6});
-
-// 	obj.shader = ColorShader();
-
-// 	return obj;
-// }
 
 template <typename P, typename Uniform, typename VShaderT, typename FShaderT> /* 里面有限制 Shader 类型了 */
 Object<objl::Vertex, P, Uniform, VShaderT, FShaderT> // TODO color ->
@@ -105,124 +16,165 @@ create_object_from_obj_loader_mesh(const objl::Mesh& mesh) {
 	return object;
 }
 
+std::vector<std::string> split(const std::string& line, char c) {
+	std::vector<std::string> components;
+	size_t pos = 0;
+	do {
+		size_t npos = line.find(c, pos);
+		if(npos != std::string::npos) {
+			components.push_back(line.substr(pos, npos - pos));
+		} else {
+			components.push_back(line.substr(pos));
+			break;
+		}
+		pos = npos + 1;
+	} while (true);
+	return components;
+}
+
+std::string trimmed(const std::string& str) {
+	std::string out;
+	bool first_non_empty_occurred = false;
+	for(int i = 0; i < str.size(); i++) {
+		if(str[i] != ' ') first_non_empty_occurred = true;
+		if(first_non_empty_occurred) {
+			out.push_back(str[i]);
+		}
+	}
+	first_non_empty_occurred = false;
+	int i;
+	for(i = out.size() - 1; i >= 0; i--) {
+		if(out[i] != ' ') {
+			break;
+		}
+	}
+	out.reserve(i + 1);
+	return out;
+}
+
 int main() {
 	objl::Loader loader;
-	loader.LoadFile("BCY.obj");
-	std::cout << "loaded: " << loader.LoadedMeshes.size() << " meshes" << std::endl;
-	
-	
 	Rasterizer<BlinnPhongUniform> rasterizer;
-	for(auto mesh: loader.LoadedMeshes) {
-		auto loadedObject = create_object_from_obj_loader_mesh<
-			BlinnPhongProperty,
-			BlinnPhongUniform,
-			BlinnPhongVShader,
-			BlinnPhongFShader
-		>(mesh);
-		rasterizer.addObject(loadedObject, { {1, 0, 0}, {0, 1, 0 }, {0, 0, 1 } }, { 0, 0, 0 });
-	}
+	Vec3 camera_pos {0, 0, 10};
+	Vec3 camera_dir {0, 0, -1};
+	Vec3 camera_top {0, 1, 0};	// TODO: 这两个量必须垂直
+	double z_near = 0.1;
+	double z_far = 200;
+	double fovY = 90; // deg
+	double aspect_ratio = 1;
+	int width = 1000;
+	int height = 1000; // 这两个量也是关联的
+	std::string filename = "out.bmp";
+	std::string modelpath = "Keqing/Keqing.obj";
 
 	BlinnPhongUniform uniform;
 	uniform.lights.push_back(Light{
 		{-0.4 * 7, 2.0 * 7, 1.2 * 7},
 		RGBColor{3, 3, 3}
 	});
-	rasterizer.uniform = uniform;
-	
-	rasterizer.rasterize(
-		Vec3{2, 9, 10} * (1 / 1.2),				// pos
-		{-0.2, -0.2, -1},				// dir
-		{0, 1,  0},				// top
-		0.1,
-		200,
-		deg_to_rad(90),
-		1,
-	    1600,
-		1600
-	).save("image_loaded.bmp");
 
-	/*
-	BlinnPhongUniform uniform;
-	uniform.lights.push_back(Light{
-		{-0.4 * 2, 2.0 * 2, 1.2 * 2},
-		RGBColor{2, 2, 2}
-	});
-	rasterizer.uniform = uniform;
+	using namespace std;
 	
-	rasterizer.rasterize(
-		{0.2, 0.9, 1.2},				// pos
-		{-0.2, -0.2, -1},				// dir
-		{0, 1,  0},				// top
-		0.1,
-		200,
-		deg_to_rad(90),
-		1,
-		1600,
-		1600
-	).save("image_loaded.bmp");
-	*/
+	while(true) {
+		cout << "objv > ";
 
-	/*
-	BlinnPhongUniform uniform;
-	uniform.lights.push_back(Light{
-		{-4, 20, 12},
-		RGBColor{6, 6, 6}
-	});
-	rasterizer.uniform = uniform;
-	
-	rasterizer.rasterize(
-		{0, 12, 12},				// pos
-		{0, -0.2, -1},				// dir
-		{0, 1,  0},				// top
-		0.1,
-		200,
-		deg_to_rad(90),
-		1,
-		800,
-		800
-	).save("image_loaded.bmp");
-	*/
+		string line;
+		getline(cin, line);
+
+		try {
+			auto commands = split(line, ';');
+			for(auto command: commands){
+				auto args = split(trimmed(command), ' ');
+		
+				if(args.size() == 1 && args[0] == "exit") {
+					return 0;
+				} else if ((args.size() == 1 || args.size() == 2) && args[0] == "load") {
+					rasterizer.clearObjects();
+					if (args.size() == 2) {
+						modelpath = args[1];
+					}
+					loader.LoadFile(modelpath);
+						
+					for(auto mesh: loader.LoadedMeshes) {
+						auto loadedObject = create_object_from_obj_loader_mesh<
+							BlinnPhongProperty,
+							BlinnPhongUniform,
+							BlinnPhongVShader,
+							BlinnPhongFShader
+						>(mesh);
+						// TODO: 这不是常见的模型方向指定方式
+						rasterizer.addObject(loadedObject, { {1, 0, 0}, {0, 1, 0 }, {0, 0, 1 } }, { 0, 0, 0 });
+					}
+
+					std::cout << "loaded: " << loader.LoadedMeshes.size() << " meshes" << std::endl;
+				} else if (args.size() == 4 && args[0] == "cdir") {
+					camera_dir = {stod(args[1]), stod(args[2]), stod(args[3])};
+				} else if (args.size() == 4 && args[0] == "cpos") {
+					camera_pos = {stod(args[1]), stod(args[2]), stod(args[3])};
+				} else if (args.size() == 4 && args[0] == "ctop") {
+					camera_top = {stod(args[1]), stod(args[2]), stod(args[3])};
+				} else if (args.size() == 2 && args[0] == "znear") {
+					z_near = stod(args[1]);
+				} else if (args.size() == 2 && args[0] == "zfar") {
+					z_far = stod(args[1]);
+				} else if (args.size() == 2 && args[0] == "fov") {
+					fovY = stod(args[1]);
+				} else if (args.size() == 2 && args[0] == "ar") {
+					aspect_ratio = stod(args[1]);
+				} else if (args.size() == 2 && args[0] == "width") {
+					width = stoi(args[1]);
+				} else if (args.size() == 2 && args[0] == "height") {
+					height = stoi(args[1]);
+				} else if ((args.size() == 1 || args.size() == 2) && args[0] == "w") {
+					if(args.size() == 2) {
+						filename = args[1];
+					}
+
+					rasterizer.uniform = uniform;
+					rasterizer.rasterize(
+						camera_pos,				// pos
+						camera_dir,				// dir
+						camera_top,				// top
+						z_near,
+						z_far,
+						deg_to_rad(fovY),
+						aspect_ratio,
+						width,
+						height
+					).save(filename);
+				} else if (args.size() == 1 && args[0] == "p") {
+					printf(
+						"[Camera]\n"
+						"position(cpos)     %.2f %.2f %.2f\n"
+						"direction(cdir)    %.2f %.2f %.2f\n"
+						"top(ctop)          %.2f %.2f %.2f\n"
+						"[Frustum]\n"  
+						"z_near(znear)      %.2f\n"
+						"z_far(far)         %.2f\n" 
+						"fovY(fov)          %.2f deg\n" 
+						"aspect ratio(ar)   %.2f\n"
+						"[Screen]\n"  
+						"width              %d\n"
+						"height             %d\n"
+						"[I/O]\n"  
+						"model(load)        %s\n"
+						"output(w)          %s\n",
+
+						camera_pos[0], camera_pos[1], camera_pos[2], 
+						camera_dir[0], camera_dir[1], camera_dir[2], 
+						camera_top[0], camera_top[1], camera_top[2], 
+						z_near, z_far, fovY, aspect_ratio,
+						width, height,
+						modelpath.c_str(), filename.c_str()
+					);
+				} else if(args.size() == 0) {
+					// do nothing
+				} else {
+					cout << "unsupported command" << endl;
+				}
+			}
+		} catch(...) {
+			cout << "exception occurred" << endl;
+		}
+	}	
 }
-
-
-/*
-
-	GrayObject obj1 = getGrayObj();
-	ColorObject obj2 = getColorObj();
-
-	Vec3 obj_pos1{ -2, 0.0, 0.0 };
-	Vec3 obj_pos2{ 2, 0.0, 0.0 };
-	Mat3 obj_dir{
-		{1, 0, 0},
-		{0, 1, 0},
-		{0, 0, 1}
-	};
-
-	// cannot guarentee objects are NothingUniform acceptable
-	Rasterizer<NothingUniform> rasterizer;
-	rasterizer.addObject(loadedObject, obj_dir, obj_pos1);
-	rasterizer.addObject(obj2, obj_dir, obj_pos2);
-
-	Vec3 camera_pos{ 0, 3, 9 };
-	Vec3 camera_dir{ 0, -1, -3 };
-	Vec3 camera_top{ 0, 3, -1 };
-
-	rasterizer.rasterize(
-		camera_pos,
-		camera_dir,
-		camera_top,
-		0.5,
-		10,
-		deg_to_rad(90),
-		2,
-		800 * 2,
-		800
-	).save("image_multi.bmp");
-
-	Image image(400, 200);
-	image[{20, 10}].b = 1.0;
-	image.save("b.bmp");
-
-	getchar();
-
-*/

@@ -7,4 +7,3 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(CImg CONFIG REQUIRED)
 add_executable(soft_rasterizer main.cpp image.cpp)
 target_link_libraries(soft_rasterizer PRIVATE CImg::CImg)
-

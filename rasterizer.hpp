@@ -145,6 +145,11 @@ public:
         return *this;
     }
 
+    Rasterizer& clearObjects() {
+        objects.clear();
+        return *this;
+    }
+
     Image rasterize(
         const Vec3& camera_pos,
         const Vec3& camera_dir,
