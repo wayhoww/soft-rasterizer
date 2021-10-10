@@ -77,7 +77,7 @@ double deg_to_rad(double deg) {
 
 // Object<Uniform, Attribute, Property, Shader>
 // VertexData<Attribute> --- VertexShader<Attribute, Uniform> --> Vertex<Property> --- 
-// --- Fragment<Vertex> --> RGBColor
+// --- Fragment<Vertex> --> RGBAColor
 
 template<typename Uniform>
 class Rasterizer {

@@ -102,7 +102,7 @@ public:
 class AbstractFShader {
 public:
     virtual ~AbstractFShader() {}
-    virtual RGBColor shade(const AbstractFragment& fragment, const std::any& uniform) const = 0;
+    virtual RGBAColor shade(const AbstractFragment& fragment, const std::any& uniform) const = 0;
 };
 
 template <typename P, typename Uniform>
@@ -110,8 +110,8 @@ requires Interpolatable<P>
 class FShader: public AbstractFShader {
 public:
     // Shader 因此是一个抽象类，无法实例化。TODO：可以看一下如何用 Module 阻止用户直接继承 AbstractShader
-    virtual RGBColor shade(const Fragment<P>& fragment, const Uniform& uniform) const = 0;
-    virtual RGBColor shade(const AbstractFragment& fragment, const std::any& uniform) const override {
+    virtual RGBAColor shade(const Fragment<P>& fragment, const Uniform& uniform) const = 0;
+    virtual RGBAColor shade(const AbstractFragment& fragment, const std::any& uniform) const override {
         auto& n_frag = dynamic_cast<const Fragment<P>&>(fragment);
         auto n_uniform = std::any_cast<Uniform>(uniform);
         return shade(n_frag, n_uniform);
@@ -165,6 +165,7 @@ public:
 // TODO: 没必要和 ShaderT 绑定了
 template <typename A, typename P, typename Uniform, typename VShaderT, typename FShaderT>
 requires Interpolatable<P> && std::derived_from<FShaderT, FShader<P, Uniform>>
+                           && std::derived_from<VShaderT, VShader<A, P, Uniform>>
 class Object: public AbstractObject {
 public:
     VShaderT vshader;

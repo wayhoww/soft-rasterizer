@@ -6,13 +6,21 @@
 #include "blinn_phong.hpp"
 
 template <typename P, typename Uniform, typename VShaderT, typename FShaderT> /* 里面有限制 Shader 类型了 */
-Object<objl::Vertex, P, Uniform, VShaderT, FShaderT> // TODO color ->
-create_object_from_obj_loader_mesh(const objl::Mesh& mesh) {
-	Object<objl::Vertex, P, Uniform, VShaderT, FShaderT> object;
+Object<BlinnPhongAttribute, P, Uniform, VShaderT, FShaderT> // TODO color ->
+create_object_from_obj_loader_mesh(const objl::Loader& loader, size_t index, const std::string& obj_path) {
+	auto& mesh = loader.LoadedMeshes[index];
+	Object<BlinnPhongAttribute, P, Uniform, VShaderT, FShaderT> object;
 	for(int i = 0; i < mesh.Indices.size(); i += 3) 
 		object.triangles.push_back({mesh.Indices[i], mesh.Indices[i+1], mesh.Indices[i+2]});
 	
-	object.vertices = mesh.Vertices;
+	auto basepath = obj_path.substr(0, obj_path.find_last_of('/'));
+	auto map_Kd = std::make_shared<Image>(basepath + "/" + mesh.MeshMaterial.map_Kd);
+	for(auto vert: mesh.Vertices) {
+		BlinnPhongAttribute attr;
+		attr.vertex = vert;
+		attr.map_Kd = map_Kd;
+		object.vertices.push_back(attr);
+	}
 	return object;
 }
 
@@ -70,7 +78,7 @@ int main() {
 	BlinnPhongUniform uniform;
 	uniform.lights.push_back(Light{
 		{-0.4 * 7, 2.0 * 7, 1.2 * 7},
-		RGBColor{3, 3, 3}
+		RGBAColor{3, 3, 3}
 	});
 
 	using namespace std;
@@ -94,14 +102,14 @@ int main() {
 						modelpath = args[1];
 					}
 					loader.LoadFile(modelpath);
-						
-					for(auto mesh: loader.LoadedMeshes) {
+					
+					for(int i = 0; i < loader.LoadedMeshes.size(); i++) {
 						auto loadedObject = create_object_from_obj_loader_mesh<
 							BlinnPhongProperty,
 							BlinnPhongUniform,
 							BlinnPhongVShader,
 							BlinnPhongFShader
-						>(mesh);
+						>(loader, i, modelpath);
 						// TODO: 这不是常见的模型方向指定方式
 						rasterizer.addObject(loadedObject, { {1, 0, 0}, {0, 1, 0 }, {0, 0, 1 } }, { 0, 0, 0 });
 					}

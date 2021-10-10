@@ -3,9 +3,9 @@
 
 // class ColorProperty: public AbstractInterpolatable {
 // public:
-//     RGBColor color;
+//     RGBAColor color;
 //     ColorProperty() = default; 
-//     ColorProperty(const RGBColor& color): color(color) { }
+//     ColorProperty(const RGBAColor& color): color(color) { }
 //     ColorProperty inversed() const {
 //         auto out = *this;
 //         out.color.r = 1.0 / out.color.r;
@@ -23,7 +23,7 @@
 
 // class ColorShader: public Shader<ColorProperty, NothingUniform> {
 // public:
-//     RGBColor shade(const Fragment<ColorProperty>& fragment, const NothingUniform& uniform) const override {
+//     RGBAColor shade(const Fragment<ColorProperty>& fragment, const NothingUniform& uniform) const override {
 //         return fragment.properties.color;
 //     }
 // };

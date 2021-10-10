@@ -14,8 +14,8 @@
 
 // class GrayFShader: public FShader<NothingProperty, NothingUniform> {
 // public:
-//     RGBColor shade(const Fragment<NothingProperty>& fragment, const NothingUniform& uniform) const override {
-//         return RGBColor{0.5, 0.5, 0.5};
+//     RGBAColor shade(const Fragment<NothingProperty>& fragment, const NothingUniform& uniform) const override {
+//         return RGBAColor{0.5, 0.5, 0.5};
 //     }
 // };
 
