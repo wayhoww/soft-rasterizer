@@ -5,29 +5,31 @@
 #include "rasterizer.hpp"
 #include "OBJ_Loader.h"
 #include "blinn_phong.hpp"
-#include "assimp_importer.hpp"
 #include "ld_obj_loader.hpp"
 #include "utils.hpp"
 
+Vec3 correct(const Vec3& n, const Vec3& a) {
+	return a - n * (dot_product(n, a) / dot_product(n, n));
+}
+
 
 int main() {
-
-	DoTheImportThing("");
-
 	objl::Loader loader;
 	Rasterizer<BlinnPhongUniform> rasterizer;
-	Vec3 camera_pos {0, 0, 10};
-	Vec3 camera_dir {0, 0, -1};
-	Vec3 camera_top {0, 1, 0};	// TODO: 这两个量必须垂直
+	Vec3 camera_pos {2, 16, 13};
+	Vec3 camera_dir {-2, -2, -10};
+	Vec3 camera_top {0, 1, 0};
+	camera_top = correct(camera_dir, camera_top);
+
 	double z_near = 0.1;
 	double z_far = 200;
 	double fovY = 90; // deg
 	double aspect_ratio = 1;
 	int width = 1000;
-	int height = 1000; // 这两个量也是关联的
+	int height = 1000;
 
 	std::string filename = "out.bmp";
-	std::string modelpath = "Keqing/Keqing.obj";
+	std::string modelpath = "Keqing2/tex-obj/Keqing.obj";
 
 	BlinnPhongUniform uniform;
 	uniform.lights.push_back(Light{
@@ -56,25 +58,28 @@ int main() {
 						modelpath = args[1];
 					}
 					loader.LoadFile(modelpath);
-					
-					for(int i = 0; i < loader.LoadedMeshes.size(); i++) {
+
+					for(auto mesh: loader.LoadedMeshes) {
 						auto loadedObject = create_object_from_obj_loader_mesh<
 							BlinnPhongProperty,
 							BlinnPhongUniform,
 							BlinnPhongVShader,
 							BlinnPhongFShader
-						>(loader, i, modelpath);
+						>(mesh, modelpath);
 						// TODO: 这不是常见的模型方向指定方式
 						rasterizer.addObject(loadedObject, { {1, 0, 0}, {0, 1, 0 }, {0, 0, 1 } }, { 0, 0, 0 });
 					}
-
-					std::cout << "loaded: " << loader.LoadedMeshes.size() << " meshes" << std::endl;
+					std::cerr << "loaded: " << loader.LoadedMeshes.size() << " meshes" << std::endl;
 				} else if (args.size() == 4 && args[0] == "cdir") {
 					camera_dir = {stod(args[1]), stod(args[2]), stod(args[3])};
+					camera_top = correct(camera_dir, camera_top);
+					std::cerr << "camera_top is corrected to [" << camera_top[0] << ", " << camera_top[1] << ", " << camera_top[2] << " ]" << endl;
 				} else if (args.size() == 4 && args[0] == "cpos") {
 					camera_pos = {stod(args[1]), stod(args[2]), stod(args[3])};
 				} else if (args.size() == 4 && args[0] == "ctop") {
 					camera_top = {stod(args[1]), stod(args[2]), stod(args[3])};
+					camera_dir = correct(camera_top, camera_dir);
+					std::cerr << "camera_dir is corrected to [" << camera_dir[0] << ", " << camera_dir[1] << ", " << camera_dir[2] << " ]" << endl;
 				} else if (args.size() == 2 && args[0] == "znear") {
 					z_near = stod(args[1]);
 				} else if (args.size() == 2 && args[0] == "zfar") {
@@ -83,10 +88,17 @@ int main() {
 					fovY = stod(args[1]);
 				} else if (args.size() == 2 && args[0] == "ar") {
 					aspect_ratio = stod(args[1]);
+					height = std::lround(width / aspect_ratio);
+					std::cerr << "height is corrected to " << height << endl;
 				} else if (args.size() == 2 && args[0] == "width") {
 					width = stoi(args[1]);
+					// width / height == ar
+					aspect_ratio = 1.0 * width / height;
+					std::cerr << "ar is corrected to " << aspect_ratio << endl;
 				} else if (args.size() == 2 && args[0] == "height") {
 					height = stoi(args[1]);
+					aspect_ratio = 1.0 * width / height;
+					std::cerr << "ar is corrected to " << aspect_ratio << endl;
 				} else if ((args.size() == 1 || args.size() == 2) && args[0] == "w") {
 					if(args.size() == 2) {
 						filename = args[1];

@@ -5,8 +5,7 @@
 
 template <typename P, typename Uniform, typename VShaderT, typename FShaderT> /* 里面有限制 Shader 类型了 */
 Object<BlinnPhongAttribute, P, Uniform, VShaderT, FShaderT> // TODO color ->
-create_object_from_obj_loader_mesh(const objl::Loader& loader, size_t index, const std::string& obj_path) {
-	auto& mesh = loader.LoadedMeshes[index];
+create_object_from_obj_loader_mesh(const objl::Mesh& mesh, const std::string& obj_path) {
 	Object<BlinnPhongAttribute, P, Uniform, VShaderT, FShaderT> object;
 	for(int i = 0; i < mesh.Indices.size(); i += 3) 
 		object.triangles.push_back({mesh.Indices[i], mesh.Indices[i+1], mesh.Indices[i+2]});
