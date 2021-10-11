@@ -190,9 +190,9 @@ public:
             for(auto [i1, i2, i3]: pObj->triangles) {
                 const int VertexSize = pObj->getVShader().vertexSize();
                 char* mem = (char*) alloc_mem (VertexSize * 3);
-                auto& v1 = vShader.shade(pObj->getVertexData(i1), uniform, M, mem + 0 * VertexSize);
-                auto& v2 = vShader.shade(pObj->getVertexData(i2), uniform, M, mem + 1 * VertexSize);
-                auto& v3 = vShader.shade(pObj->getVertexData(i3), uniform, M, mem + 2 * VertexSize);
+                auto& v1 = vShader.shade(pObj->getVertexData(i1), uniform, M, camera_pos, mem + 0 * VertexSize);
+                auto& v2 = vShader.shade(pObj->getVertexData(i2), uniform, M, camera_pos, mem + 1 * VertexSize);
+                auto& v3 = vShader.shade(pObj->getVertexData(i3), uniform, M, camera_pos, mem + 2 * VertexSize);
 
                 auto pos1_vec4 = SPVM * to_vec4_as_pos(v1.pos);
                 auto pos2_vec4 = SPVM * to_vec4_as_pos(v2.pos);
@@ -201,6 +201,11 @@ public:
                 auto pos1 = to_vec3_as_pos(pos1_vec4);
                 auto pos2 = to_vec3_as_pos(pos2_vec4);
                 auto pos3 = to_vec3_as_pos(pos3_vec4);
+
+                
+                auto pos1_world = to_vec3_as_pos(M * to_vec4_as_pos(v1.pos));
+                auto pos2_world = to_vec3_as_pos(M * to_vec4_as_pos(v2.pos));
+                auto pos3_world = to_vec3_as_pos(M * to_vec4_as_pos(v3.pos));
 
                 double fragment_width = 2.0 / width;
                 double fragment_height = 2.0 / height;
@@ -250,6 +255,10 @@ public:
                                     nk3 / nksum, v3,
                                     mem
                                 );
+
+                                fragment.pos =  pos1_world * (nk1 / nksum) + 
+                                                pos2_world * (nk2 / nksum) + 
+                                                pos3_world * (nk3 / nksum) ;
 
                                 f_buffer[x_index][y_index].first = &fragment;
                                 f_buffer[x_index][y_index].second = &pObj->getFShader();

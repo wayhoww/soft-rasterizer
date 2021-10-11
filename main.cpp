@@ -24,18 +24,18 @@ int main() {
 	double z_near = 0.1;
 	double z_far = 200;
 	double fovY = 90; // deg
-	double aspect_ratio = 1;
-	int width = 1000;
+	double aspect_ratio = 0.6;
+	int width = 600;
 	int height = 1000;
+
+	Vec3 light_pos{-0.4 * 7, 2.0 * 7, 1.2 * 7};
+	RGBAColor light_color{3, 3, 3, 1.0};
+	rasterizer.uniform = BlinnPhongUniform {{
+		Light {light_pos, light_color}	
+	}};
 
 	std::string filename = "out.bmp";
 	std::string modelpath = "Keqing2/tex-obj/Keqing.obj";
-
-	BlinnPhongUniform uniform;
-	uniform.lights.push_back(Light{
-		{-0.4 * 7, 2.0 * 7, 1.2 * 7},
-		RGBAColor{3, 3, 3}
-	});
 
 	using namespace std;
 	
@@ -80,6 +80,12 @@ int main() {
 					camera_top = {stod(args[1]), stod(args[2]), stod(args[3])};
 					camera_dir = correct(camera_top, camera_dir);
 					std::cerr << "camera_dir is corrected to [" << camera_dir[0] << ", " << camera_dir[1] << ", " << camera_dir[2] << " ]" << endl;
+				} else if (args.size() == 4 && args[0] == "lpos") {
+					light_pos = {stod(args[1]), stod(args[2]), stod(args[3])};
+					rasterizer.uniform = BlinnPhongUniform {{ Light {light_pos, light_color} }};
+				} else if (args.size() == 4 && args[0] == "lcolor") {
+					light_color = {stod(args[1]), stod(args[2]), stod(args[3]), 1.0};
+					rasterizer.uniform = BlinnPhongUniform {{ Light {light_pos, light_color} }};
 				} else if (args.size() == 2 && args[0] == "znear") {
 					z_near = stod(args[1]);
 				} else if (args.size() == 2 && args[0] == "zfar") {
@@ -103,8 +109,6 @@ int main() {
 					if(args.size() == 2) {
 						filename = args[1];
 					}
-
-					rasterizer.uniform = uniform;
 					rasterizer.rasterize(
 						camera_pos,				// pos
 						camera_dir,				// dir
@@ -122,6 +126,9 @@ int main() {
 						"position(cpos)     %.2f %.2f %.2f\n"
 						"direction(cdir)    %.2f %.2f %.2f\n"
 						"top(ctop)          %.2f %.2f %.2f\n"
+						"[Light]\n"
+						"position(lpos)     %.2f %.2f %.2f\n"
+						"color(lcolor)      %.2f %.2f %.2f\n"
 						"[Frustum]\n"  
 						"z_near(znear)      %.2f\n"
 						"z_far(far)         %.2f\n" 
@@ -137,6 +144,8 @@ int main() {
 						camera_pos[0], camera_pos[1], camera_pos[2], 
 						camera_dir[0], camera_dir[1], camera_dir[2], 
 						camera_top[0], camera_top[1], camera_top[2], 
+						light_pos[0], light_pos[1], light_pos[2], 
+						light_color.r, light_color.g, light_color.b,
 						z_near, z_far, fovY, aspect_ratio,
 						width, height,
 						modelpath.c_str(), filename.c_str()

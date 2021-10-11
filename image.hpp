@@ -36,6 +36,19 @@ struct RGBAColor {
 	RGBAColor operator+(const RGBAColor& c) const {
 		auto out = *this;
 		return out += c;
+	}	
+	
+	RGBAColor& operator*=(const RGBAColor& c) {
+		r *= c.r;
+		g *= c.g;
+		b *= c.b;
+		a *= c.a;
+		return *this;
+	}
+
+	RGBAColor operator*(const RGBAColor& c) const {
+		auto out = *this;
+		return out *= c;
 	}
 
 	RGBAColor& clip() {

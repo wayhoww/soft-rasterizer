@@ -92,7 +92,7 @@ public:
         auto p = p1 * k1 + p2 * k2 + p3 * k3;
 
         auto frag = new (mem) Fragment(p); // TODO operator new 要多大空间？(对的)
-        frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
+       // frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
 
         return *frag;
     }
@@ -124,7 +124,7 @@ public:
 class AbstractVShader {
 public:
     virtual ~AbstractVShader() {}
-    virtual AbstractVertex& shade(const std::any& data, const std::any& uniform, const Mat4& M, void* mem) const = 0;
+    virtual AbstractVertex& shade(const std::any& data, const std::any& uniform, const Mat4& M, const Vec3& camera_pos, void* mem) const = 0;
     virtual size_t vertexSize() const = 0; 
 };
 
@@ -132,7 +132,7 @@ template <typename VertexDataT, typename P, typename Uniform>
 requires Interpolatable<P>
 class VShader: public AbstractVShader {
 public:
-    virtual Vertex<P> shade(const VertexDataT& data, const Uniform& uniform, const Mat4& M) const = 0;
+    virtual Vertex<P> shade(const VertexDataT& data, const Uniform& uniform, const Mat4& M, const Vec3& camera_pos) const = 0;
     virtual size_t vertexSize() const override {
         return sizeof(Vertex<P>);
     }
@@ -141,11 +141,12 @@ public:
         const std::any& data, 
         const std::any& uniform, 
         const Mat4& M, 
+        const Vec3& camera_pos,
         void* mem
     ) const {
         auto n_data = std::any_cast<VertexDataT>(data);
         auto n_uniform = std::any_cast<Uniform>(uniform);
-        Vertex<P> vertex = shade(n_data, n_uniform, M);
+        Vertex<P> vertex = shade(n_data, n_uniform, M, camera_pos);
         memcpy(mem, &vertex, sizeof(vertex));
         return *static_cast<AbstractVertex*>(mem);
     }
