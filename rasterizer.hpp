@@ -7,7 +7,6 @@
 #include <iostream>
 #include <cmath>
 #include <list>
-#include "simple_color.hpp"
 
 template <typename T> 
 T min3(const T& t1, const T& t2, const T& t3) {
@@ -179,42 +178,48 @@ public:
         auto f_buffer = matrix_of_size<std::pair<const AbstractFragment*, const AbstractFShader*>>(width, height, std::make_pair(nullptr, nullptr));
         auto d_buffer = matrix_of_size<double>(width, height, far + 1); // TODO: -inf
 
+        RasterizerInfo info;
+        info.V = V;
+        info.P = S * P;
+        info.camera_dir = camera_dir;
+        info.camera_top = camera_top;
+        info.camera_pos = camera_pos;
+
         for(auto desp: objects) {
             auto& pObj = desp.object;
             auto& vShader = pObj->getVShader();
             auto& fShader = pObj->getFShader();
 
             auto M = model_transform(desp.pos, desp.dir);
-            auto SPVM = SPV * M;
+            info.M = M;
 
             for(auto [i1, i2, i3]: pObj->triangles) {
                 const int VertexSize = pObj->getVShader().vertexSize();
                 char* mem = (char*) alloc_mem (VertexSize * 3);
-                auto& v1 = vShader.shade(pObj->getVertexData(i1), uniform, M, camera_pos, mem + 0 * VertexSize);
-                auto& v2 = vShader.shade(pObj->getVertexData(i2), uniform, M, camera_pos, mem + 1 * VertexSize);
-                auto& v3 = vShader.shade(pObj->getVertexData(i3), uniform, M, camera_pos, mem + 2 * VertexSize);
+                auto& v1 = vShader.shade(pObj->getVertexData(i1), uniform, info, mem + 0 * VertexSize);
+                auto& v2 = vShader.shade(pObj->getVertexData(i2), uniform, info, mem + 1 * VertexSize);
+                auto& v3 = vShader.shade(pObj->getVertexData(i3), uniform, info, mem + 2 * VertexSize);
 
-                auto pos1_vec4 = SPVM * to_vec4_as_pos(v1.pos);
-                auto pos2_vec4 = SPVM * to_vec4_as_pos(v2.pos);
-                auto pos3_vec4 = SPVM * to_vec4_as_pos(v3.pos);
+                auto pos1_world_vec4 = M * to_vec4_as_pos(v1.pos_model);
+                auto pos2_world_vec4 = M * to_vec4_as_pos(v2.pos_model);
+                auto pos3_world_vec4 = M * to_vec4_as_pos(v3.pos_model);
 
-                auto pos1 = to_vec3_as_pos(pos1_vec4);
-                auto pos2 = to_vec3_as_pos(pos2_vec4);
-                auto pos3 = to_vec3_as_pos(pos3_vec4);
+                auto pos1_screen_vec4 = SPV * pos1_world_vec4;
+                auto pos2_screen_vec4 = SPV * pos2_world_vec4;
+                auto pos3_screen_vec4 = SPV * pos3_world_vec4;
 
-                
-                auto pos1_world = to_vec3_as_pos(M * to_vec4_as_pos(v1.pos));
-                auto pos2_world = to_vec3_as_pos(M * to_vec4_as_pos(v2.pos));
-                auto pos3_world = to_vec3_as_pos(M * to_vec4_as_pos(v3.pos));
+                auto pos1_screen_vec3 = to_vec3_as_pos(pos1_screen_vec4);
+                auto pos2_screen_vec3 = to_vec3_as_pos(pos2_screen_vec4);
+                auto pos3_screen_vec3 = to_vec3_as_pos(pos3_screen_vec4);
 
                 double fragment_width = 2.0 / width;
                 double fragment_height = 2.0 / height;
 
-                int x_min = (min3(pos1[0], pos2[0], pos3[0]) + 1) / fragment_width - 0.5 - 1;
-                int x_max = (max3(pos1[0], pos2[0], pos3[0]) + 1) / fragment_width - 0.5 + 2;
+                int x_min = (min3(pos1_screen_vec3[0], pos2_screen_vec3[0], pos3_screen_vec3[0]) + 1) / fragment_width - 0.5 - 1;
+                int x_max = (max3(pos1_screen_vec3[0], pos2_screen_vec3[0], pos3_screen_vec3[0]) + 1) / fragment_width - 0.5 + 2;
 
-                int y_min = (min3(pos1[1], pos2[1], pos3[1]) + 1) / fragment_height - 0.5 - 1;
-                int y_max = (max3(pos1[1], pos2[1], pos3[1]) + 1) / fragment_height - 0.5 + 2;
+                int y_min = (min3(pos1_screen_vec3[1], pos2_screen_vec3[1], pos3_screen_vec3[1]) + 1) / fragment_height - 0.5 - 1;
+                int y_max = (max3(pos1_screen_vec3[1], pos2_screen_vec3[1], pos3_screen_vec3[1]) + 1) / fragment_height - 0.5 + 2;
                 
                 for(int x_index = std::max(0, x_min); x_index < std::min(width, x_max); x_index++) {
                     for(int y_index = std::max(0, y_min); y_index < std::min(height, y_max); y_index++) {
@@ -222,21 +227,24 @@ public:
                         double y = y_index * fragment_height + 0.5 * fragment_height - 1;
                         Vec2 pt {x, y};
 
-                        Vec2 vs2dim1 { pos1[0], pos1[1] }; 
-                        Vec2 vs2dim2 { pos2[0], pos2[1] }; 
-                        Vec2 vs2dim3 { pos3[0], pos3[1] }; 
-                        if(in_triangle(pt, vs2dim1, vs2dim2, vs2dim3)) {
+                        Vec2 pos1_screen_vec2 = { pos1_screen_vec3[0], pos1_screen_vec3[1] }; 
+                        Vec2 pos2_screen_vec2 = { pos2_screen_vec3[0], pos2_screen_vec3[1] }; 
+                        Vec2 pos3_screen_vec2 = { pos3_screen_vec3[0], pos3_screen_vec3[1] }; 
+
+                        if(in_triangle(pt, pos1_screen_vec2, pos2_screen_vec2, pos3_screen_vec2)) {
                             Vec3 center {x, y, 0};
+
+                            // 如果我不强制令z=0呢？那就会四点不共面
                             auto [k1, k2, k3] = bary_centric(
                                 center, 
-                                { pos1[0], pos1[1], 0 }, 
-                                { pos2[0], pos2[1], 0 }, 
-                                { pos3[0], pos3[1], 0 }
+                                { pos1_screen_vec2[0], pos1_screen_vec2[1], 0 }, 
+                                { pos2_screen_vec2[0], pos2_screen_vec2[1], 0 }, 
+                                { pos3_screen_vec2[0], pos3_screen_vec2[1], 0 }
                             );
 
-                            double z1 = pos1[2];
-                            double z2 = pos2[2];
-                            double z3 = pos3[2];
+                            double z1 = pos1_screen_vec3[2];
+                            double z2 = pos2_screen_vec3[2];
+                            double z3 = pos3_screen_vec3[2];
 
                             double z = k1 * z1 + k2 * z2 + k3 * z3;;
                             
@@ -245,20 +253,23 @@ public:
 
                                 auto mem = alloc_mem(v1.fragment_size());
                                 
-                                auto nk1 = k1 / pos1_vec4[3];
-                                auto nk2 = k2 / pos2_vec4[3];
-                                auto nk3 = k3 / pos3_vec4[3];
+                                auto nk1 = k1 / pos1_screen_vec4[3];
+                                auto nk2 = k2 / pos2_screen_vec4[3];
+                                auto nk3 = k3 / pos3_screen_vec4[3];
                                 auto nksum = nk1 + nk2 + nk3;
+                                nk1 /= nksum;
+                                nk2 /= nksum;
+                                nk3 /= nksum;
 
                                 auto& fragment = v1.linear_interpolation(
-                                    nk2 / nksum, v2,
-                                    nk3 / nksum, v3,
+                                    nk2, v2,
+                                    nk3, v3,
                                     mem
                                 );
 
-                                fragment.pos =  pos1_world * (nk1 / nksum) + 
-                                                pos2_world * (nk2 / nksum) + 
-                                                pos3_world * (nk3 / nksum) ;
+                                fragment.pos_world =  to_vec3_as_pos(pos1_world_vec4) * nk1 + 
+                                                      to_vec3_as_pos(pos2_world_vec4) * nk2 + 
+                                                      to_vec3_as_pos(pos3_world_vec4) * nk3 ;
 
                                 f_buffer[x_index][y_index].first = &fragment;
                                 f_buffer[x_index][y_index].second = &pObj->getFShader();

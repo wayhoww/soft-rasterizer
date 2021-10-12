@@ -7,6 +7,24 @@
 #include "matrix.hpp"
 #include "image.hpp"
 
+class RasterizerInfo {
+public:
+    Mat4 M;
+    Mat4 V;
+    Mat4 P;
+
+    Vec3 camera_pos;
+    Vec3 camera_dir;
+    Vec3 camera_top;
+
+    RasterizerInfo operator+(const RasterizerInfo& rhs) const {
+        return *this;
+    } 
+    
+    RasterizerInfo operator*(double rhs) const {
+        return *this;
+    } 
+};
 
 class AbstractInterpolatable {
 public:
@@ -23,7 +41,7 @@ concept Interpolatable = requires(const T& a, double k) {
 
 class AbstractFragment {
 public:
-    Vec3 pos;
+    Vec3 pos_world;
     virtual AbstractInterpolatable& getProperties() = 0;
     virtual const AbstractInterpolatable& getProperties() const = 0;
     virtual ~AbstractFragment() {}
@@ -45,10 +63,10 @@ public:
 
 class AbstractVertex {
 public:
-    Vec3 pos;
+    Vec3 pos_model;
     
-    AbstractVertex(): pos(Vec3()) {}
-    AbstractVertex(const Vec3& pos): pos(pos) {}
+    AbstractVertex(): pos_model(Vec3()) {}
+    AbstractVertex(const Vec3& pos_model): pos_model(pos_model) {}
     virtual ~AbstractVertex(){}
 
     virtual AbstractInterpolatable& getProperties() = 0;
@@ -68,7 +86,7 @@ requires Interpolatable<P>
 class Vertex: public AbstractVertex {
 public:
     Vertex() = default;
-    Vertex(const Vec3& pos, const P& properties): AbstractVertex(pos), properties(properties) {}
+    Vertex(const Vec3& pos_model, const P& properties): AbstractVertex(pos_model), properties(properties) {}
     P properties;
     virtual AbstractInterpolatable& getProperties() override { return properties; }
     virtual const AbstractInterpolatable& getProperties() const override { return properties; }
@@ -124,7 +142,7 @@ public:
 class AbstractVShader {
 public:
     virtual ~AbstractVShader() {}
-    virtual AbstractVertex& shade(const std::any& data, const std::any& uniform, const Mat4& M, const Vec3& camera_pos, void* mem) const = 0;
+    virtual AbstractVertex& shade(const std::any& data, const std::any& uniform, const RasterizerInfo& info, void* mem) const = 0;
     virtual size_t vertexSize() const = 0; 
 };
 
@@ -132,7 +150,7 @@ template <typename VertexDataT, typename P, typename Uniform>
 requires Interpolatable<P>
 class VShader: public AbstractVShader {
 public:
-    virtual Vertex<P> shade(const VertexDataT& data, const Uniform& uniform, const Mat4& M, const Vec3& camera_pos) const = 0;
+    virtual Vertex<P> shade(const VertexDataT& data, const Uniform& uniform, const RasterizerInfo& info) const = 0;
     virtual size_t vertexSize() const override {
         return sizeof(Vertex<P>);
     }
@@ -140,13 +158,12 @@ public:
     virtual AbstractVertex& shade(
         const std::any& data, 
         const std::any& uniform, 
-        const Mat4& M, 
-        const Vec3& camera_pos,
+        const RasterizerInfo& info,
         void* mem
     ) const {
         auto n_data = std::any_cast<VertexDataT>(data);
         auto n_uniform = std::any_cast<Uniform>(uniform);
-        Vertex<P> vertex = shade(n_data, n_uniform, M, camera_pos);
+        Vertex<P> vertex = shade(n_data, n_uniform, info);
         memcpy(mem, &vertex, sizeof(vertex));
         return *static_cast<AbstractVertex*>(mem);
     }

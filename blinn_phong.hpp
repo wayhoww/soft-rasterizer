@@ -33,9 +33,9 @@ public:
                        std::shared_ptr<const Image> map_Kd,
                        std::shared_ptr<const Image> map_Ka,
                        std::shared_ptr<const Image> map_Ks): 
-                    normal(normal), uv(uv), map_Kd(map_Kd), map_Ka(map_Ka), map_Ks(map_Ks), material(material), M(M), camera_pos(camera_pos) {}
+                    normal_world_n(normal), uv(uv), map_Kd(map_Kd), map_Ka(map_Ka), map_Ks(map_Ks), material(material), M(M), camera_pos(camera_pos) {}
 
-    Vec3 normal;
+    Vec3 normal_world_n;
     Vec2 uv;
     std::shared_ptr<const Image> map_Kd = nullptr;
     std::shared_ptr<const Image> map_Ka = nullptr;
@@ -47,11 +47,11 @@ public:
 
     // TODO: assert map_Kd is the same
     BlinnPhongProperty operator+(const BlinnPhongProperty& other) const {
-        return BlinnPhongProperty{ normal + other.normal, uv + other.uv, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
+        return BlinnPhongProperty{ normal_world_n + other.normal_world_n, uv + other.uv, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
     }
     
     BlinnPhongProperty operator*(double k) const {
-        return BlinnPhongProperty{ normal * k, uv * k, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
+        return BlinnPhongProperty{ normal_world_n * k, uv * k, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
     }
 };
 
@@ -61,22 +61,27 @@ public:
     virtual Vertex<BlinnPhongProperty> shade(
         const BlinnPhongAttribute& attr, 
         const BlinnPhongUniform& _,
-        const Mat4& M,
-        const Vec3& camera_pos
+        const RasterizerInfo& info
     ) const {
         auto& data = attr.vertex;
 
         Vertex<BlinnPhongProperty> vert;
-        vert.pos = { data.Position.X, data.Position.Y, data.Position.Z };
-        vert.properties.normal = { data.Normal.X, data.Normal.Y, data.Normal.Z };
-        vert.properties.normal = to_vec3_as_dir(M * to_vec4_as_dir(vert.properties.normal));
+        
+        // vert
+        vert.pos_model = { data.Position.X, data.Position.Y, data.Position.Z };
+        vert.properties.normal_world_n = to_vec3_as_dir(info.M * to_vec4_as_dir({ data.Normal.X, data.Normal.Y, data.Normal.Z })).normalized();
+        
+        // material
         vert.properties.map_Kd = attr.map_Kd;
         vert.properties.map_Ka = attr.map_Ka;
         vert.properties.map_Ks = attr.map_Ks;
         vert.properties.uv = { attr.vertex.TextureCoordinate.X, attr.vertex.TextureCoordinate.Y };
         vert.properties.material = attr.material;
-        vert.properties.M = M;
-        vert.properties.camera_pos = camera_pos;
+
+        // rasterizer
+        vert.properties.M = info.M;
+        vert.properties.camera_pos = info.camera_pos;
+
         return vert;
     }
 };
@@ -106,7 +111,7 @@ public:
     ) const {
         
         RGBAColor out = {0, 0, 0, 1};
-        auto normal_world = to_vec3_as_dir(fragment.properties.M * to_vec4_as_dir(fragment.properties.normal)).normalized();
+        auto& normal_world = fragment.properties.normal_world_n;
         
         // what if no map ?
         {
@@ -120,9 +125,9 @@ public:
                 // coefficient
                 auto k = std::max<double>(0, dot_product(
                     normal_world, 
-                    (light_pos_world - fragment.pos).normalized()
+                    (light_pos_world - fragment.pos_world).normalized()
                 ));
-                auto r_squared = (light.pos - fragment.pos).norm2_squared();
+                auto r_squared = (light.pos - fragment.pos_world).norm2_squared();
                 auto eff = k / r_squared;
 
                 auto c = objl_vec3_to_color(fragment.properties.material.Kd) * texture_color * light.intensity * eff;
@@ -132,7 +137,7 @@ public:
                 // texture
                 auto highlight_texture_color = get_texture(fragment.properties.map_Ks, fragment.properties.uv);
                 
-                auto h = ((fragment.properties.camera_pos - fragment.pos).normalized() + (light_pos_world - fragment.pos).normalized()).normalized();
+                auto h = ((fragment.properties.camera_pos - fragment.pos_world).normalized() + (light_pos_world - fragment.pos_world).normalized()).normalized();
                 out += objl_vec3_to_color(fragment.properties.material.Ks) * 
                        highlight_texture_color * 
                        pow( (long double)std::max<double>(0, dot_product(normal_world, h)), (long double) fragment.properties.material.Ni);
