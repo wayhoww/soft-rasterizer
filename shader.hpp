@@ -109,7 +109,7 @@ public:
         
         auto p = p1 * k1 + p2 * k2 + p3 * k3;
 
-        auto frag = new (mem) Fragment(p); // TODO operator new 要多大空间？(对的)
+        auto frag = new (mem) Fragment(std::move(p)); // TODO operator new 要多大空间？(对的)
        // frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
 
         return *frag;
