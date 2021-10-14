@@ -286,7 +286,7 @@ public:
             for(int y_index = 0; y_index < height; y_index++) {
                 auto [fragment, shader] =  f_buffer[x_index][y_index];
                 if(fragment != nullptr) {
-                    image[{x_index, y_index}] = shader->shade(*fragment, uniform);
+                    image.setPixel(x_index, y_index, shader->shade(*fragment, uniform));
                 }
             }
         }

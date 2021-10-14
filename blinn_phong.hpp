@@ -96,10 +96,10 @@ RGBAColor get_texture(std::shared_ptr<const Image> texture, const Vec2& uv) {
     }
 
     auto [width, height] = texture->size();
-    auto texture_color = (*texture)[{
+    auto texture_color = texture->getPixel(
         std::min<int>(width - 1, lround(uv[0] * (width - 1))), 
         std::min<int>(height - 1, lround(uv[1] * (height - 1)))
-    }];
+    );
     return texture_color;
 }
 

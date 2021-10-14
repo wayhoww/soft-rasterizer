@@ -64,10 +64,12 @@ struct RGBAColor {
 RGBAColor operator*(float k, const RGBAColor& c);
 
 
+constexpr int PIXEL_SIZE = 4;
+
 class Image {
 	int width;
 	int height;
-	RGBAColor* buffer = nullptr;
+	unsigned char* buffer = nullptr;
 public:
 
 	Image(): width(0), height(0), buffer(nullptr) {}
@@ -75,9 +77,11 @@ public:
 	Image(int width, int height, bool init = true): 
 		width(width), 
 		height(height), 
-		buffer((RGBAColor*) malloc(sizeof(RGBAColor) * width * height)) {
+		buffer((unsigned char*) malloc(PIXEL_SIZE* width * height)) {
 		
-		if (init) memset(buffer, 0, sizeof(RGBAColor) * width * height);
+		if (init) {
+			memset(buffer, 0, PIXEL_SIZE * width * height); 
+		}
 	}
 
 	~Image() {
@@ -87,8 +91,8 @@ public:
 	Image(const Image& other) {
 		width = other.width;
 		height = other.height;
-		buffer = (RGBAColor*)malloc(sizeof(RGBAColor) * width * height);
-		memcpy(buffer, other.buffer, sizeof(RGBAColor) * width * height);
+		buffer = (unsigned char*)malloc(PIXEL_SIZE * width * height);
+		memcpy(buffer, other.buffer, PIXEL_SIZE * width * height);
 	}
 
 	Image(Image&& other) {
@@ -112,12 +116,27 @@ public:
 	Image(const std::string& filename, bool use_cache = true, bool save_to_cache = true);
 
 	// [{x, y}], 左下坐标系
-	RGBAColor& operator[](const std::pair<int, int>& p) {
-		return buffer[(height - 1 - p.second) * width + p.first];
+	RGBAColor getPixel(int x, int y) const {
+		int pixel_offset = (height - 1 - y) * width + x;
+		int channel_size = height * width;
+		return RGBAColor{
+			buffer[0 * channel_size + pixel_offset] / 255.0f,
+			buffer[1 * channel_size + pixel_offset] / 255.0f,
+			buffer[2 * channel_size + pixel_offset] / 255.0f,
+			buffer[3 * channel_size + pixel_offset] / 255.0f
+		};
 	}
 
-	const RGBAColor& operator[](const std::pair<int, int>& p) const {
-		return buffer[(height - 1 - p.second) * width + p.first];
+	Image& setPixel(int x, int y, const RGBAColor& color) {
+		int pixel_offset = (height - 1 - y) * width + x;
+		int channel_size = height * width;
+
+		buffer[0 * channel_size + pixel_offset] = lround(color.r * 255.0f);
+		buffer[1 * channel_size + pixel_offset] = lround(color.g * 255.0f);
+		buffer[2 * channel_size + pixel_offset] = lround(color.b * 255.0f);
+		buffer[3 * channel_size + pixel_offset] = lround(color.a * 255.0f);
+
+		return *this;
 	}
 
 	void save(const std::string& filename) const;
