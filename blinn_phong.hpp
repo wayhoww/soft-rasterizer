@@ -50,7 +50,7 @@ public:
         return BlinnPhongProperty{ normal_world_n + other.normal_world_n, uv + other.uv, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
     }
     
-    BlinnPhongProperty operator*(double k) const {
+    BlinnPhongProperty operator*(float k) const {
         return BlinnPhongProperty{ normal_world_n * k, uv * k, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
     }
 };
@@ -123,7 +123,7 @@ public:
                 auto texture_color = get_texture(fragment.properties.map_Kd, fragment.properties.uv);
             
                 // coefficient
-                auto k = std::max<double>(0, dot_product(
+                auto k = std::max<float>(0, dot_product(
                     normal_world, 
                     (light_pos_world - fragment.pos_world).normalized()
                 ));
@@ -140,7 +140,7 @@ public:
                 auto h = ((fragment.properties.camera_pos - fragment.pos_world).normalized() + (light_pos_world - fragment.pos_world).normalized()).normalized();
                 out += objl_vec3_to_color(fragment.properties.material.Ks) * 
                        highlight_texture_color * 
-                       pow( (long double)std::max<double>(0, dot_product(normal_world, h)), (long double) fragment.properties.material.Ni);
+                       pow( (long float)std::max<float>(0, dot_product(normal_world, h)), (long float) fragment.properties.material.Ni);
             }
         }
 
@@ -151,6 +151,7 @@ public:
             out += objl_vec3_to_color(fragment.properties.material.Ka) * texture_color;
         }
        
+        out.a = 1.0;
 
         return out.clip();
     }

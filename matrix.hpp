@@ -7,7 +7,7 @@
 
 template<int M, int N>
 class Matrix {
-    double data[M][N];
+    float data[M][N];
 public:
     static constexpr int ShapeM = M;
     static constexpr int ShapeN = N;
@@ -21,7 +21,7 @@ public:
     }
 
     // 破坏了静态检查。不过 API 会比较易用。
-    Matrix(const std::initializer_list<double>& init) requires (N == 1) {
+    Matrix(const std::initializer_list<float>& init) requires (N == 1) {
         if(init.size() != M) throw "unmatch size";
         
         int i = 0;
@@ -31,7 +31,7 @@ public:
     }
 
     // 破坏了静态检查。不过 API 会比较易用。
-    Matrix(const std::initializer_list<std::initializer_list<double>>& init) {
+    Matrix(const std::initializer_list<std::initializer_list<float>>& init) {
         if(init.size() != M) throw "unmatch size";
         int i = 0, j = 0;
         for(auto row: init) {
@@ -72,21 +72,21 @@ public:
         }
     }
 
-    double& operator[](const std::pair<int, int>& index) {
+    float& operator[](const std::pair<int, int>& index) {
         return data[index.first][index.second];
     }
 
-    double operator[](const std::pair<int, int>& index) const {
+    float operator[](const std::pair<int, int>& index) const {
         return data[index.first][index.second];   
     }
 
     //template<>
-    double& operator[](int index) requires (N == 1) {
+    float& operator[](int index) requires (N == 1) {
         return data[index][0];
     }
 
     // /template<>
-    double operator[](int index) const requires (N == 1) {
+    float operator[](int index) const requires (N == 1) {
         return data[index][0];
     }
 
@@ -112,7 +112,7 @@ public:
         return mat;
     }
 
-    Matrix& operator*=(double k) {
+    Matrix& operator*=(float k) {
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
                 data[i][j] *= k;
@@ -121,7 +121,7 @@ public:
         return *this;
     }
 
-    Matrix operator*(double k) const {
+    Matrix operator*(float k) const {
         Matrix rst = *this;
         rst *= k;
         return rst;
@@ -155,8 +155,8 @@ public:
         return *this;
     }
 
-    double norm2_squared() const {
-        double sum = 0;
+    float norm2_squared() const {
+        float sum = 0;
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
                 sum += data[i][j] * data[i][j];
@@ -165,11 +165,11 @@ public:
         return sum;
     }
 
-    double norm2() const {
+    float norm2() const {
         return sqrt(norm2_squared());
     }
 
-    Matrix& operator/=(double x) {
+    Matrix& operator/=(float x) {
         return (*this) *= 1/x;
     }
 
@@ -200,8 +200,8 @@ Vec3 cross_product(const Vec3& vec31, const Vec3& vec32) {
 }
 
 template <int dim> 
-double dot_product(const Matrix<dim, 1>& vec1, const Matrix<dim, 1>& vec2) {
-    double sum = 0;
+float dot_product(const Matrix<dim, 1>& vec1, const Matrix<dim, 1>& vec2) {
+    float sum = 0;
     for(int i = 0; i < dim; i++) {
         sum += vec1[i] * vec2[i];
     }

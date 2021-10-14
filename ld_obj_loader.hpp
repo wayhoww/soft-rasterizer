@@ -12,7 +12,7 @@ create_object_from_obj_loader_mesh(const objl::Mesh& mesh, const std::string& ob
 	
 	auto basepath = obj_path.substr(0, obj_path.find_last_of('/'));
 
-	std::shared_ptr<Image> map_Kd = nullptr, map_Ka = nullptr;
+	std::shared_ptr<Image> map_Kd = nullptr, map_Ka = nullptr, map_Ks = nullptr;
 	
 	if(!mesh.MeshMaterial.map_Kd.empty()) 
 		map_Kd = std::make_shared<Image>(basepath + "/" + mesh.MeshMaterial.map_Kd);
@@ -20,11 +20,15 @@ create_object_from_obj_loader_mesh(const objl::Mesh& mesh, const std::string& ob
 	if(!mesh.MeshMaterial.map_Ka.empty()) 
 		map_Ka = std::make_shared<Image>(basepath + "/" + mesh.MeshMaterial.map_Ka);
 
+	if(!mesh.MeshMaterial.map_Ks.empty()) 
+		map_Ks = std::make_shared<Image>(basepath + "/" + mesh.MeshMaterial.map_Ka);
+
 	for(auto vert: mesh.Vertices) {
 		BlinnPhongAttribute attr;
 		attr.vertex = vert;
 		attr.map_Kd = map_Kd;
 		attr.map_Ka = map_Ka;
+		attr.map_Ks = map_Ks;
 		attr.material = mesh.MeshMaterial;
 		object.vertices.push_back(attr);
 	}

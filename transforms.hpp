@@ -46,7 +46,7 @@ Mat4 view_transform(Vec3 camera_pos, Vec3 camera_dir, Vec3 camera_top) {
     return mat1 * mat2;
 }
 
-Mat4 projection_transform(double near, double far) {
+Mat4 projection_transform(float near, float far) {
     Mat4 mat;
     mat[{0, 0}] = near;
     mat[{1, 1}] = near;

@@ -4,15 +4,16 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <cstdlib>
 
 
 struct RGBAColor {
-	double r = 0;
-	double g = 0;
-	double b = 0;
-	double a = 1;
+	float r = 0;
+	float g = 0;
+	float b = 0;
+	float a = 1;
 
-	RGBAColor& operator*=(double k) {
+	RGBAColor& operator*=(float k) {
 		r *= k;
 		g *= k;
 		b *= k;
@@ -20,7 +21,7 @@ struct RGBAColor {
 		return *this;
 	}
 
-	RGBAColor operator*(double k) const {
+	RGBAColor operator*(float k) const {
 		auto out = *this;
 		return out *= k;
 	}
@@ -52,36 +53,71 @@ struct RGBAColor {
 	}
 
 	RGBAColor& clip() {
-		r = std::max<double>(0, std::min<double>(r, 1));
-		g = std::max<double>(0, std::min<double>(g, 1));
-		b = std::max<double>(0, std::min<double>(b, 1));
-		a = std::max<double>(0, std::min<double>(a, 1));
+		r = std::max<float>(0, std::min<float>(r, 1));
+		g = std::max<float>(0, std::min<float>(g, 1));
+		b = std::max<float>(0, std::min<float>(b, 1));
+		a = std::max<float>(0, std::min<float>(a, 1));
 		return *this;
 	}
 };
 
-RGBAColor operator*(double k, const RGBAColor& c);
+RGBAColor operator*(float k, const RGBAColor& c);
 
 
 class Image {
 	int width;
 	int height;
-	std::vector<std::vector<RGBAColor>> buffer;
+	RGBAColor* buffer = nullptr;
 public:
-	Image(int width, int height): 
+
+	Image(): width(0), height(0), buffer(nullptr) {}
+
+	Image(int width, int height, bool init = true): 
 		width(width), 
 		height(height), 
-		buffer(std::vector<std::vector<RGBAColor>>(height, std::vector<RGBAColor>(width, RGBAColor()))) {}
+		buffer((RGBAColor*) malloc(sizeof(RGBAColor) * width * height)) {
+		
+		if (init) memset(buffer, 0, sizeof(RGBAColor) * width * height);
+	}
 
-	Image(const std::string& filename);
+	~Image() {
+		free(buffer);
+	}
+
+	Image(const Image& other) {
+		width = other.width;
+		height = other.height;
+		buffer = (RGBAColor*)malloc(sizeof(RGBAColor) * width * height);
+		memcpy(buffer, other.buffer, sizeof(RGBAColor) * width * height);
+	}
+
+	Image(Image&& other) {
+		width = other.width;
+		height = other.height;
+		buffer = other.buffer;
+		other.buffer = nullptr;
+	}
+
+	Image& operator=(const Image& other);
+
+	Image& operator=(Image&& other) {
+		free(buffer);
+		width = other.width;
+		height = other.height;
+		buffer = other.buffer;
+		other.buffer = nullptr;
+		return *this;
+	}
+
+	Image(const std::string& filename, bool use_cache = true, bool save_to_cache = true);
 
 	// [{x, y}], 左下坐标系
 	RGBAColor& operator[](const std::pair<int, int>& p) {
-		return buffer[height - 1 - p.second][p.first];
+		return buffer[(height - 1 - p.second) * width + p.first];
 	}
 
 	const RGBAColor& operator[](const std::pair<int, int>& p) const {
-		return buffer[height - 1 - p.second][p.first];
+		return buffer[(height - 1 - p.second) * width + p.first];
 	}
 
 	void save(const std::string& filename) const;

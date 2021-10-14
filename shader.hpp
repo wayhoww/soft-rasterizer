@@ -21,7 +21,7 @@ public:
         return *this;
     } 
     
-    RasterizerInfo operator*(double rhs) const {
+    RasterizerInfo operator*(float rhs) const {
         return *this;
     } 
 };
@@ -32,7 +32,7 @@ public:
 };
 
 template <typename T>
-concept Interpolatable = requires(const T& a, double k) {
+concept Interpolatable = requires(const T& a, float k) {
     std::derived_from<T, AbstractInterpolatable>;
 
     { a * k        } -> std::same_as<T>;
@@ -75,8 +75,8 @@ public:
     virtual size_t fragment_size() const = 0;
     
     virtual AbstractFragment& linear_interpolation(
-        double k2, const AbstractVertex& v2, 
-        double k3, const AbstractVertex& v3,
+        float k2, const AbstractVertex& v2, 
+        float k3, const AbstractVertex& v3,
         void* mem
     ) const = 0;
 };
@@ -95,12 +95,12 @@ public:
     virtual size_t fragment_size() const { return sizeof(Fragment<P>); }
 
     virtual AbstractFragment& linear_interpolation(
-        double k2, const AbstractVertex& v2, 
-        double k3, const AbstractVertex& v3,
+        float k2, const AbstractVertex& v2, 
+        float k3, const AbstractVertex& v3,
         void* mem
     ) const {
         
-        double k1 = 1 - k2 - k3;
+        float k1 = 1 - k2 - k3;
         const auto& v1 = *this;
         
         auto& p1 = dynamic_cast<const Vertex&>(v1).properties;
@@ -212,6 +212,6 @@ class NothingUniform {};
 class NothingProperty: public AbstractInterpolatable {
 public:
     NothingProperty inversed() const { return *this; }
-    NothingProperty operator*(double) const { return *this; }
+    NothingProperty operator*(float) const { return *this; }
     NothingProperty operator+(NothingProperty) const { return *this; }
 };

@@ -46,7 +46,7 @@ bool in_triangle(const Vec2& pt, const Vec2& v1, const Vec2& v2, const Vec2& v3)
     return r1 == r2 && r2 == r3;
 }
 
-std::tuple<double, double, double> bary_centric(
+std::tuple<float, float, float> bary_centric(
     const Vec3& center, 
     const Vec3& v1, 
     const Vec3& v2, 
@@ -57,9 +57,9 @@ std::tuple<double, double, double> bary_centric(
     auto area3 = cross_product(center - v1, center - v2).norm2();
 
     auto area_sum = area1 + area2 + area3;
-    double k1 = area1 / area_sum;
-    double k2 = area2 / area_sum;
-    double k3 = area3 / area_sum;
+    float k1 = area1 / area_sum;
+    float k2 = area2 / area_sum;
+    float k3 = area3 / area_sum;
 
     return {k1, k2, k3};
 }
@@ -69,7 +69,7 @@ std::vector<std::vector<T>> matrix_of_size(int n_rows, int n_cols, const T& defa
     return std::vector<std::vector<T>>(n_rows, std::vector<T>(n_cols, default_value));
 }
 
-double deg_to_rad(double deg) {
+float deg_to_rad(float deg) {
     return deg / 180 * acos(-1.0);
 }
 
@@ -153,10 +153,10 @@ public:
         const Vec3& camera_pos,
         const Vec3& camera_dir,
         const Vec3& camera_top,
-        double near, // should be positive
-        double far,  // should be positive
-        double field_of_view_y, // 和渲染结果里面的范围有关
-        double aspect_ratio,
+        float near, // should be positive
+        float far,  // should be positive
+        float field_of_view_y, // 和渲染结果里面的范围有关
+        float aspect_ratio,
         int width,           // 和实际的图片大小有关
         int height           // width / height == aspect ratio should hold
     ) /* const cast here */ {
@@ -165,8 +165,8 @@ public:
         auto w = aspect_ratio * h;
 
         Mat4 S {
-            { 2.0/w, 0, 0, 0 },
-            { 0, 2.0/h, 0, 0 },
+            { 2.0f/w, 0, 0, 0 },
+            { 0, 2.0f/h, 0, 0 },
             { 0, 0,     1, 0 },
             { 0, 0,     0, 1 }
         };
@@ -176,7 +176,7 @@ public:
         auto SPV = S * P * V;
 
         auto f_buffer = matrix_of_size<std::pair<const AbstractFragment*, const AbstractFShader*>>(width, height, std::make_pair(nullptr, nullptr));
-        auto d_buffer = matrix_of_size<double>(width, height, far + 1); // TODO: -inf
+        auto d_buffer = matrix_of_size<float>(width, height, far + 1); // TODO: -inf
 
         RasterizerInfo info;
         info.V = V;
@@ -212,8 +212,8 @@ public:
                 auto pos2_screen_vec3 = to_vec3_as_pos(pos2_screen_vec4);
                 auto pos3_screen_vec3 = to_vec3_as_pos(pos3_screen_vec4);
 
-                double fragment_width = 2.0 / width;
-                double fragment_height = 2.0 / height;
+                float fragment_width = 2.0 / width;
+                float fragment_height = 2.0 / height;
 
                 int x_min = (min3(pos1_screen_vec3[0], pos2_screen_vec3[0], pos3_screen_vec3[0]) + 1) / fragment_width - 0.5 - 1;
                 int x_max = (max3(pos1_screen_vec3[0], pos2_screen_vec3[0], pos3_screen_vec3[0]) + 1) / fragment_width - 0.5 + 2;
@@ -223,8 +223,8 @@ public:
                 
                 for(int x_index = std::max(0, x_min); x_index < std::min(width, x_max); x_index++) {
                     for(int y_index = std::max(0, y_min); y_index < std::min(height, y_max); y_index++) {
-                        double x = x_index * fragment_width + 0.5 * fragment_width - 1;
-                        double y = y_index * fragment_height + 0.5 * fragment_height - 1;
+                        float x = x_index * fragment_width + 0.5 * fragment_width - 1;
+                        float y = y_index * fragment_height + 0.5 * fragment_height - 1;
                         Vec2 pt {x, y};
 
                         Vec2 pos1_screen_vec2 = { pos1_screen_vec3[0], pos1_screen_vec3[1] }; 
@@ -242,11 +242,11 @@ public:
                                 { pos3_screen_vec2[0], pos3_screen_vec2[1], 0 }
                             );
 
-                            double z1 = pos1_screen_vec3[2];
-                            double z2 = pos2_screen_vec3[2];
-                            double z3 = pos3_screen_vec3[2];
+                            float z1 = pos1_screen_vec3[2];
+                            float z2 = pos2_screen_vec3[2];
+                            float z3 = pos3_screen_vec3[2];
 
-                            double z = k1 * z1 + k2 * z2 + k3 * z3;;
+                            float z = k1 * z1 + k2 * z2 + k3 * z3;;
                             
                             if(z <= far && z >= near && z < d_buffer[x_index][y_index]) {
                                 d_buffer[x_index][y_index] = z;
