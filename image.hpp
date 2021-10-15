@@ -5,6 +5,7 @@
 #include <cstring>
 #include <vector>
 #include <cstdlib>
+#include <cmath>
 
 
 struct RGBAColor {
@@ -130,11 +131,10 @@ public:
 	Image& setPixel(int x, int y, const RGBAColor& color) {
 		int pixel_offset = (height - 1 - y) * width + x;
 		int channel_size = height * width;
-
-		buffer[0 * channel_size + pixel_offset] = lround(color.r * 255.0f);
-		buffer[1 * channel_size + pixel_offset] = lround(color.g * 255.0f);
-		buffer[2 * channel_size + pixel_offset] = lround(color.b * 255.0f);
-		buffer[3 * channel_size + pixel_offset] = lround(color.a * 255.0f);
+		buffer[0 * channel_size + pixel_offset] = std::lround(color.r * 255.0f);
+		buffer[1 * channel_size + pixel_offset] = std::lround(color.g * 255.0f);
+		buffer[2 * channel_size + pixel_offset] = std::lround(color.b * 255.0f);
+		buffer[3 * channel_size + pixel_offset] = std::lround(color.a * 255.0f);
 
 		return *this;
 	}

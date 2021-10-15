@@ -5,6 +5,67 @@
 #include <initializer_list>
 #include <array>
 
+template<int M, int N, typename ConstT>
+requires ( std::same_as<ConstT, float> || std::same_as<ConstT, const float> )
+class MatrixSlice {
+public:
+    ConstT* data[M][N];
+    static constexpr bool NOT_CONST = std::same_as<ConstT, float>;
+
+    float& operator[](const std::pair<int, int>& index)
+    requires (NOT_CONST) {
+        return *data[index.first][index.second];
+    }
+
+    float operator[](const std::pair<int, int>& index) const {
+        return *data[index.first][index.second];   
+    }
+
+    MatrixSlice& operator=(const MatrixSlice& slice) {
+        for(int i = 0; i < M; i++) {
+            for(int j = 0; j < N; j++) {
+                *data[i][j] = *slice.data[i][j];
+            }
+        }
+    }
+
+    // 语义上限制一下对const slice对象的内容的访问
+    // 怎么整？
+    // MatrixSlice& operator-=(const Matrix<M, N>& mat);
+
+    template <typename ConstT2>
+    MatrixSlice& operator-=(const MatrixSlice<M, N, ConstT2>& mat) {
+        for(int i = 0; i < M; i++)
+            for(int j = 0; j < N; j++)
+                *data[i][j] -= *mat.data[i][j];
+        return *this;
+    }
+
+    
+    MatrixSlice& operator/=(float k) {
+        for(int i = 0; i < M; i++)
+            for(int j = 0; j < N; j++)
+                *data[i][j] /= k;
+        return *this;
+    }
+
+    MatrixSlice() = default;
+    MatrixSlice(const MatrixSlice&) = default;
+    MatrixSlice(MatrixSlice&&) = delete; // 如何直接 delete 一个外部的？？
+    MatrixSlice& operator=(MatrixSlice&&) = delete; 
+};
+
+namespace std {
+    template<int M, int N>
+    void swap(const MatrixSlice<M, N, float> slice1, const MatrixSlice<M, N, float>& slice2) {
+        for(int i = 0; i < M; i++) {
+            for(int j = 0; j < N; j++) {
+                swap(*slice1.data[i][j], *slice1.data[i][j]);
+            }
+        }
+    }
+}
+
 template<int M, int N>
 class Matrix {
     float data[M][N];
@@ -41,6 +102,14 @@ public:
             }
             i++;
             j = 0;
+        }
+    }
+
+    Matrix(const MatrixSlice<M, N, float>& slice) {
+        for(int i = 0; i < M; i++) {
+            for(int j = 0; j < N; j++) {
+                data[i][j] = slice[{i, j}];
+            }
         }
     }
 
@@ -155,6 +224,25 @@ public:
         return *this;
     }
 
+    template <typename ConstT>
+    Matrix& operator-=(const MatrixSlice<M, N, ConstT>& rhs) {
+        for(int i = 0; i < M; i++) {
+            for(int j = 0; j < N; j++) {
+                data[i][j] -= rhs[{i, j}];
+            }
+        }
+        return *this;
+    }
+
+    static Matrix Identity() 
+    requires (M == N){
+        Matrix out;
+        for(int i = 0; i < M; i++) {
+            out[{i, i}] = 1;
+        }
+        return out;
+    };
+
     float norm2_squared() const {
         float sum = 0;
         for(int i = 0; i < M; i++) {
@@ -181,7 +269,82 @@ public:
         auto out = *this;
         return out /= norm2();
     }
+
+    Matrix inversed() const requires (M == N) {
+        Matrix L = *this;
+        Matrix R = Matrix::Identity();
+        for(int i = 0; i < N - 1; i++) {
+            // make sure R[i][i] != 0
+            int max_abs_index = i;
+            float max_abs_val = fabs(R[{i, i}]);
+
+            for(int j = i + 1; j < N; j++) {
+                // 只要别带来数值精度问题，都没啥关系。float：1e-38
+                if(max_abs_val > 1e-10) break;
+                double abs_val = fabs(R[{j, i}]);
+                if(abs_val > max_abs_val) {
+                    max_abs_val = abs_val;
+                    max_abs_index = j;
+                }
+            }
+
+            if(max_abs_index != i) {
+                std::swap(L.row(i), L.row(max_abs_index));
+                std::swap(R.row(i), R.row(max_abs_index));
+            }
+
+            float head = L[{i, i}];
+            for(int j = i + 1; j < N; j++) {
+                float div = L[{j, i}] / head;
+                // TODO
+                auto temp1 = (L.row(i) * div);
+                auto temp2 = (R.row(i) * div);
+                L.row(j) -= temp1.row(0);
+                R.row(j) -= temp2.row(0);
+            }
+        }
+
+        for(int i = N - 1; i > 0; i--) {
+            float head = L[{i, i}];
+            for(int j = i - 1; j >= 0; j--) {
+                float div = L[{j, i}] / head;
+           //     auto temp1 = (L.row(i) * div);
+                auto temp2 = (R.row(i) * div);
+           //     L.row(j) -= temp1.row(0);
+                R.row(j) -= temp2.row(0);
+            }
+        }
+
+        for(int i = 0; i < N; i++) {
+            float div = L[{i, i}];
+      //      L.row(i) /= div;
+            R.row(i) /= div;
+        }
+
+        return R;
+    }
+
+    MatrixSlice<1, N, float> row(int i) {
+        MatrixSlice<1, N, float> out;
+        for(int j = 0; j < N; j++) {
+            out.data[0][j] = &data[i][j]; // TODO ????
+        }
+        return out;
+    }
+
+    MatrixSlice<M, 1, float> col(int j) {
+        MatrixSlice<M, 1, float> out;
+        for(int i = 0; i < M; i++) {
+            out[{i, 0}] = &(*this)[{i, j}];
+        }
+        return out;
+    }
 };
+
+template<int M, int N>
+Matrix<M, N> operator*(const MatrixSlice<M, N, float>& slice, float k) {
+    return Matrix<M, N>(slice) * k;
+}
 
 // 如何只对某个成员函数进行特化？
 
@@ -232,3 +395,4 @@ Vec3 to_vec3_as_pos(const Vec4& vec) {
     for(int i = 0; i < 3; i++) mat[i] = vec[i] / vec[3];
     return mat;
 }
+

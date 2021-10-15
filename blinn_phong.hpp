@@ -7,9 +7,11 @@
 struct BlinnPhongAttribute {
     objl::Vertex vertex;
     objl::Material material;
+    Mat3 TBN;
     std::shared_ptr<const Image> map_Kd = nullptr;
     std::shared_ptr<const Image> map_Ka = nullptr;
     std::shared_ptr<const Image> map_Ks = nullptr;
+    std::shared_ptr<const Image> map_bump = nullptr;
 };
 
 struct Light {
@@ -27,31 +29,37 @@ public:
     BlinnPhongProperty() = default;
     BlinnPhongProperty(const Vec3& normal, 
                        const Vec2& uv, 
+                       const Mat3& TBN,
                        const objl::Material& material,
                        const Mat4& M,
                        const Vec3& camera_pos,
                        std::shared_ptr<const Image> map_Kd,
                        std::shared_ptr<const Image> map_Ka,
-                       std::shared_ptr<const Image> map_Ks): 
-                    normal_world_n(normal), uv(uv), map_Kd(map_Kd), map_Ka(map_Ka), map_Ks(map_Ks), material(material), M(M), camera_pos(camera_pos) {}
+                       std::shared_ptr<const Image> map_Ks,
+                       std::shared_ptr<const Image> map_bump): 
+                    normal_world_n(normal), uv(uv), map_Kd(map_Kd), 
+                    map_Ka(map_Ka), map_Ks(map_Ks), material(material), 
+                    M(M), camera_pos(camera_pos), map_bump(map_bump), TBN(TBN) {}
 
     Vec3 normal_world_n;
     Vec2 uv;
+    Mat3 TBN;
     std::shared_ptr<const Image> map_Kd = nullptr;
     std::shared_ptr<const Image> map_Ka = nullptr;
     std::shared_ptr<const Image> map_Ks = nullptr;
+    std::shared_ptr<const Image> map_bump = nullptr;
     Mat4 M;
     Vec3 camera_pos;
     
     objl::Material material;
-
+    // TODO 这其实很不合理。。。要求插值顺序了。。
     // TODO: assert map_Kd is the same
     BlinnPhongProperty operator+(const BlinnPhongProperty& other) const {
-        return BlinnPhongProperty{ normal_world_n + other.normal_world_n, uv + other.uv, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
+        return BlinnPhongProperty{ normal_world_n + other.normal_world_n, uv + other.uv, TBN, material, M, camera_pos, map_Kd, map_Ka, map_Ks, map_bump };
     }
     
     BlinnPhongProperty operator*(float k) const {
-        return BlinnPhongProperty{ normal_world_n * k, uv * k, material, M, camera_pos, map_Kd, map_Ka, map_Ks };
+        return BlinnPhongProperty{ normal_world_n * k, uv * k, TBN, material, M, camera_pos, map_Kd, map_Ka, map_Ks, map_bump };
     }
 };
 
@@ -70,11 +78,13 @@ public:
         // vert
         vert.pos_model = { data.Position.X, data.Position.Y, data.Position.Z };
         vert.properties.normal_world_n = to_vec3_as_dir(info.M * to_vec4_as_dir({ data.Normal.X, data.Normal.Y, data.Normal.Z })).normalized();
-        
+        vert.properties.TBN = attr.TBN;
+
         // material
         vert.properties.map_Kd = attr.map_Kd;
         vert.properties.map_Ka = attr.map_Ka;
         vert.properties.map_Ks = attr.map_Ks;
+        vert.properties.map_bump = attr.map_bump;
         vert.properties.uv = { attr.vertex.TextureCoordinate.X, attr.vertex.TextureCoordinate.Y };
         vert.properties.material = attr.material;
 
@@ -111,7 +121,22 @@ public:
     ) const {
         
         RGBAColor out = {0, 0, 0, 1};
-        auto& normal_world = fragment.properties.normal_world_n;
+        auto normal_world = fragment.properties.normal_world_n.normalized();
+
+        // bump mapping (normal)
+        // 改变的：表面法向量
+        if(fragment.properties.map_bump != nullptr) {
+            
+            // change normal_world
+            auto normal_c = get_texture(fragment.properties.map_bump, fragment.properties.uv);
+            Vec3 normal_tangent {
+                normal_c.r * 2 - 1,
+                normal_c.g * 2 - 1,
+                normal_c.b * 2 - 1
+            };
+            Vec3 normal_model = fragment.properties.TBN * normal_tangent;
+            normal_world = to_vec3_as_dir(fragment.properties.M * to_vec4_as_dir(normal_model)).normalized();
+        } 
         
         // what if no map ?
         {
@@ -138,9 +163,10 @@ public:
                 auto highlight_texture_color = get_texture(fragment.properties.map_Ks, fragment.properties.uv);
                 
                 auto h = ((fragment.properties.camera_pos - fragment.pos_world).normalized() + (light_pos_world - fragment.pos_world).normalized()).normalized();
-                out += objl_vec3_to_color(fragment.properties.material.Ks) * 
+                auto s = objl_vec3_to_color(fragment.properties.material.Ks) * 
                        highlight_texture_color * 
-                       pow( (long float)std::max<float>(0, dot_product(normal_world, h)), (long float) fragment.properties.material.Ni);
+                       pow( (float)std::max<float>(0, dot_product(normal_world, h)), (float) fragment.properties.material.Ns);
+                out += s;
             }
         }
 
@@ -148,7 +174,8 @@ public:
             // Ka
             auto texture_color = get_texture(fragment.properties.map_Ka, fragment.properties.uv);
 
-            out += objl_vec3_to_color(fragment.properties.material.Ka) * texture_color;
+            auto a = objl_vec3_to_color(fragment.properties.material.Ka) * texture_color;
+            out += a;
         }
        
         out.a = 1.0;
