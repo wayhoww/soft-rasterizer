@@ -15,7 +15,7 @@ Vec3 correct(const Vec3& n, const Vec3& a) {
 int main() {
 	objl::Loader loader;
 	Rasterizer<BlinnPhongUniform> rasterizer;
-
+/*
 	Vec3 camera_pos {0, 100, 0};
 	Vec3 camera_dir {0, -1, 0};
 	Vec3 camera_top {1, 0, 0};
@@ -36,9 +36,9 @@ int main() {
 
 	std::string filename = "out.bmp";
 	std::string modelpath = "../samples/normalmap/normalmap.obj";
-
+*/
 	// Keqing
-/*	Vec3 camera_pos {2, 16, 13};
+	Vec3 camera_pos {2, 16, 13};
 	Vec3 camera_dir {-2, -2, -10};
 	Vec3 camera_top {0, 1, 0};
 	camera_top = correct(camera_dir, camera_top);
@@ -57,8 +57,8 @@ int main() {
 	}};
 
 	std::string filename = "out.bmp";
-	std::string modelpath = "samples/Keqing/Keqing.obj";
-*/
+	std::string modelpath = "../samples/Keqing/Keqing.obj";
+
 
 	using namespace std;
 	
