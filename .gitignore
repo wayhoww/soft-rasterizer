@@ -1,6 +1,8 @@
 # build
 build
 build-vs
+out
+.vs
 
 # vscode
 .vscode

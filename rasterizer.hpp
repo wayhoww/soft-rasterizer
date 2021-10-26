@@ -2,6 +2,7 @@
 
 #include "shader.hpp"
 #include "matrix.hpp"
+#include "common_header.hpp"
 #include "transforms.hpp"
 #include <vector>
 #include <iostream>
@@ -103,6 +104,7 @@ class Rasterizer {
         // 如果当前有 pool，那么空间一定足够
         
         if(pool_it == fragment_pools.end()) {
+            std::cerr << "pool: malloc" << std::endl;
             pool_it = fragment_pools.insert(pool_it, malloc(POOL_SIZE));
             mem_index = 0;
         }
@@ -279,6 +281,8 @@ public:
                 }
             }
         }
+
+        reset_mem();
 
         Image image(width, height);
 

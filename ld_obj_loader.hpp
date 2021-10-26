@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common_header.hpp"
 #include "blinn_phong.hpp"
 #include "shader.hpp"
 #include "matrix.hpp"
@@ -38,6 +39,8 @@ create_object_from_obj_loader_mesh(const objl::Mesh& mesh, const std::string& ob
 
 	if(!mesh.MeshMaterial.map_bump.empty()) 
 		map_bump = std::make_shared<Image>(basepath + "/" + mesh.MeshMaterial.map_bump);
+
+	Image::reset_cache();
 
 	// 本质问题是 TBN 其实是一个面属性，不是一个点属性。一般应该如何解决这种问题？
 	// 这里的处理方式：

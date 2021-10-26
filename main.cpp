@@ -1,3 +1,4 @@
+#include "common_header.hpp"
 #include <iostream>
 #include <algorithm>
 #include "image.hpp"
@@ -12,7 +13,8 @@ Vec3 correct(const Vec3& n, const Vec3& a) {
 	return a - n * (dot_product(n, a) / dot_product(n, n));
 }
 
-int main() {
+
+int entrance(int argc, char** argv) {
 	objl::Loader loader;
 	Rasterizer<BlinnPhongUniform> rasterizer;
 /*
@@ -47,8 +49,8 @@ int main() {
 	float z_far = 200;
 	float fovY = 90; // deg
 	float aspect_ratio = 0.6;
-	int width = 1200;
-	int height = 2000;
+	int width = 600;
+	int height = 1000;
 
 	Vec3 light_pos{-4, 16, 30};
 	RGBAColor light_color{600, 600, 600, 1.0};
@@ -57,12 +59,14 @@ int main() {
 	}};
 
 	std::string filename = "out.bmp";
-	std::string modelpath = "../samples/Keqing/Keqing.obj";
+	std::string modelpath = "../../../samples/Keqing/Keqing.obj";
 
 
 	using namespace std;
+
+	bool should_exit = false;
 	
-	while(true) {
+	while (!should_exit) {
 		cout << "objv> ";
 
 		string line;
@@ -74,7 +78,8 @@ int main() {
 				auto args = split(trimmed(command), ' ');
 		
 				if(args.size() == 1 && args[0] == "exit") {
-					return 0;
+					should_exit = true;
+					break;
 				} else if ((args.size() == 1 || args.size() == 2) && args[0] == "load") {
 					rasterizer.clearObjects();
 					if (args.size() == 2) {
@@ -132,7 +137,7 @@ int main() {
 					if(args.size() == 2) {
 						filename = args[1];
 					}
-					rasterizer.rasterize(
+					auto image = rasterizer.rasterize(
 						camera_pos,				// pos
 						camera_dir,				// dir
 						camera_top,				// top
@@ -142,7 +147,8 @@ int main() {
 						aspect_ratio,
 						width,
 						height
-					).save(filename);
+					);
+					save_image(image, filename);
 				} else if (args.size() == 1 && args[0] == "p") {
 					printf(
 						"[Camera]\n"
@@ -183,4 +189,20 @@ int main() {
 			cout << "exception occurred" << endl;
 		}
 	}	
+
+
+	auto x = DBG_NEW char[20];
+	return 0;
+}
+
+int main(int argc, char** argv) {
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif 
+
+	// load ../../../samples/simple/simple.obj; width 5; height 5; w; exit;
+	std::string str1 = "123";
+	std::string str2 = str1;
+
+	return entrance(argc, argv);
 }

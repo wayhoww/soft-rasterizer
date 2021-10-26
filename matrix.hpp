@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common_header.hpp"
 #include <vector>
 #include <cmath>
 #include <initializer_list>

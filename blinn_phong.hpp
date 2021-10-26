@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common_header.hpp"
+
 #include "shader.hpp"
 #include "OBJ_Loader.h"
 #include <iostream>
@@ -36,7 +38,7 @@ public:
                        std::shared_ptr<const Image> map_Kd,
                        std::shared_ptr<const Image> map_Ka,
                        std::shared_ptr<const Image> map_Ks,
-                       std::shared_ptr<const Image> map_bump): 
+                       std::shared_ptr<const Image> map_bump):
                     normal_world_n(normal), uv(uv), map_Kd(map_Kd), 
                     map_Ka(map_Ka), map_Ks(map_Ks), material(material), 
                     M(M), camera_pos(camera_pos), map_bump(map_bump), TBN(TBN) {}
@@ -107,8 +109,8 @@ RGBAColor get_texture(std::shared_ptr<const Image> texture, const Vec2& uv) {
 
     auto [width, height] = texture->size();
     auto texture_color = texture->getPixel(
-        std::min<int>(width - 1, lround(uv[0] * (width - 1))), 
-        std::min<int>(height - 1, lround(uv[1] * (height - 1)))
+        std::max<int>(0, std::min<int>(width - 1, lround(uv[0] * (width - 1)))), 
+        std::max<int>(0, std::min<int>(height - 1, lround(uv[1] * (height - 1))))
     );
     return texture_color;
 }

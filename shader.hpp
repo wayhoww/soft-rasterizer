@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common_header.hpp"
 #include <concepts>
 #include <algorithm>
 #include <memory>
@@ -109,8 +110,11 @@ public:
         
         auto p = p1 * k1 + p2 * k2 + p3 * k3;
 
-        auto frag = new (mem) Fragment(std::move(p)); // TODO operator new 要多大空间？(对的)
-       // frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
+        malloc(7);
+        auto frag = new (mem) Fragment(std::move(p)); 
+      // frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
+
+        malloc(11);
 
         return *frag;
     }
