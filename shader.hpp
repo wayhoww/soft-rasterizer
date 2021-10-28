@@ -110,11 +110,8 @@ public:
         
         auto p = p1 * k1 + p2 * k2 + p3 * k3;
 
-        malloc(7);
         auto frag = new (mem) Fragment(std::move(p)); 
       // frag->pos = this->pos * k1 + v2.pos * k2 + v3.pos * k3;
-
-        malloc(11);
 
         return *frag;
     }
@@ -168,8 +165,8 @@ public:
         auto n_data = std::any_cast<VertexDataT>(data);
         auto n_uniform = std::any_cast<Uniform>(uniform);
         Vertex<P> vertex = shade(n_data, n_uniform, info);
-        memcpy(mem, &vertex, sizeof(vertex));
-        return *static_cast<AbstractVertex*>(mem);
+        // memcpy(mem, &vertex, sizeof(vertex));
+        return *static_cast<AbstractVertex*>(new (mem) Vertex<P>(vertex));
     }
 };
 

@@ -273,12 +273,18 @@ public:
                                                       to_vec3_as_pos(pos2_world_vec4) * nk2 + 
                                                       to_vec3_as_pos(pos3_world_vec4) * nk3 ;
 
+                                if (f_buffer[x_index][y_index].first) {
+                                    f_buffer[x_index][y_index].first->~AbstractFragment();
+                                }
                                 f_buffer[x_index][y_index].first = &fragment;
                                 f_buffer[x_index][y_index].second = &pObj->getFShader();
                             }   
                         }
                     }
                 }
+                v1.~AbstractVertex();
+                v2.~AbstractVertex();
+                v3.~AbstractVertex();
             }
         }
 
@@ -291,6 +297,7 @@ public:
                 auto [fragment, shader] =  f_buffer[x_index][y_index];
                 if(fragment != nullptr) {
                     image.setPixel(x_index, y_index, shader->shade(*fragment, uniform));
+                    fragment->~AbstractFragment();
                 }
             }
         }

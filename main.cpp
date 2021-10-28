@@ -189,20 +189,15 @@ int entrance(int argc, char** argv) {
 			cout << "exception occurred" << endl;
 		}
 	}	
-
-
-	auto x = DBG_NEW char[20];
 	return 0;
 }
 
 int main(int argc, char** argv) {
 #ifdef _DEBUG
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif 
 
 	// load ../../../samples/simple/simple.obj; width 5; height 5; w; exit;
-	std::string str1 = "123";
-	std::string str2 = str1;
 
 	return entrance(argc, argv);
 }
