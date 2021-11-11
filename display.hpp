@@ -1,142 +1,60 @@
+#pragma once
 
-
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
-#include "common_header.hpp"
-#include "image.hpp"
-#include <map>
+#include <GL/glew.h>    // include GLEW and new version of GL on Windows
+#include <GLFW/glfw3.h> // GLFW helper library
+#include <stdio.h>
 #include <string>
-#include <format>
-#include <iostream>
-#include "utils.hpp"
-#include "stb_image.h"
-#include "stb_image_write.h"
+#include <sstream>
 
 
-static std::map<std::string, Image> image_cache;
 
-Image::~Image() {
-    std::cerr << std::format("{}: Image::~Image()", (uint64_t)this) << std::endl;
-    if(!buffer) return;
-    if(from_file) {
-        stbi_image_free(buffer);
-    } else {
-        free(buffer);
-    }
-    buffer = nullptr;
+class ImageDisplay {
+    int width;
+    int height;
+    GLuint readFboId;
+    GLFWwindow* window;
+public:
+    ImageDisplay(int width, int height): width(width), height(height) {
+        if (!glfwInit()) {
+            fprintf(stderr, "ERROR: could not start GLFW3\n");
+            exit(-1);
+        }
 
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        window = glfwCreateWindow(width, height, "Hello Triangle", NULL, NULL);
 
-}
+        if (!window) {
+            fprintf(stderr, "ERROR: could not open window with GLFW3\n");
+            glfwTerminate();
+            exit(-1);
+        }
+        glfwMakeContextCurrent(window);
 
-//unsigned char* data = stbi_load("test.jpg", &width, &height, &nrChannels, 0);
+        glewInit();
 
-void save_image(const Image& image, const std::string& path) {
-    auto [w, h, c] = image.shape();
-    if(path.ends_with(".png")) {
-        stbi_write_png(path.c_str(), w, h, c, image.data(), 0);
-    }else if(path.ends_with(".jpg") || path.ends_with(".jpeg")) {
-        stbi_write_jpg(path.c_str(), w, h, c, image.data(), 0);
-    }else if(path.ends_with(".bmp")) {
-        stbi_write_bmp(path.c_str(), w, h, c, image.data());
-    }else{
-        throw simple_exception(std::format("unexpected image format from path `{}`."
-            "Supported formats: png, jpg and bmp.", path));
-    }
-}
+        unsigned int texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
 
-Image& Image::operator=(const Image& other) {
-    free(buffer);
-    width = other.width;
-    height = other.height;
-    buffer = (unsigned char*)malloc(n_channels * width * height);
-    memcpy(buffer, other.buffer, n_channels * width * height);
-    return *this;
-}
+        glGenFramebuffers(1, &readFboId);
 
-Image::Image(const std::string& filename, bool use_cache, bool save_to_cache) {
-    if (use_cache && image_cache.count(filename)) {
-        *this = image_cache[filename]; 
-        return;
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId);
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_2D, texture, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     }
 
-    buffer = stbi_load(filename.c_str(), &width, &height, &n_channels, 0);
-    from_file = true;
+    void show(const Image& image) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image.data());
+        glGenerateMipmap(GL_TEXTURE_2D);
 
-    if (save_to_cache) {
-        image_cache[filename] = *this;
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId);
+        glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+        glfwSwapBuffers(window);
     }
-
-    std::cerr << std::format("{}: Image::Image({}, {}, {})", (uint64_t)this, filename, use_cache, save_to_cache) << std::endl;
-}
-
-void Image::reset_cache() {
-    image_cache.clear();
-}
-
-RGBAColor operator*(float k, const RGBAColor& c) {
-    return c * k;
-}
-
-
-
-//
-//#include <GL/glew.h>    // include GLEW and new version of GL on Windows
-//#include <GLFW/glfw3.h> // GLFW helper library
-//#include <stdio.h>
-//#include <string>
-//#include <sstream>
-
-
-//
-//class ImageDisplay {
-//    int width;
-//    int height;
-//    GLuint readFboId;
-//    GLFWwindow* window;
-//public:
-//    ImageDisplay(int width, int height): width(width), height(height) {
-//        if (!glfwInit()) {
-//            fprintf(stderr, "ERROR: could not start GLFW3\n");
-//            exit(-1);
-//        }
-//
-//        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-//        window = glfwCreateWindow(width, height, "Hello Triangle", NULL, NULL);
-//
-//        if (!window) {
-//            fprintf(stderr, "ERROR: could not open window with GLFW3\n");
-//            glfwTerminate();
-//            exit(-1);
-//        }
-//        glfwMakeContextCurrent(window);
-//
-//        glewInit();
-//
-//        unsigned int texture;
-//        glGenTextures(1, &texture);
-//        glBindTexture(GL_TEXTURE_2D, texture);
-//
-//        glGenFramebuffers(1, &readFboId);
-//
-//        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId);
-//        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-//            GL_TEXTURE_2D, texture, 0);
-//        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-//    }
-//
-//    void show(const Image& image) {
-//        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image.data());
-//        glGenerateMipmap(GL_TEXTURE_2D);
-//
-//        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFboId);
-//        glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-//        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-//
-//
-//        glfwSwapBuffers(window);
-//    }
-//};
+};
 
 // 返回值和参数的 std::move
 

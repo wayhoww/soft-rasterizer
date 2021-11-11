@@ -8,6 +8,7 @@
 #include "blinn_phong.hpp"
 #include "ld_obj_loader.hpp"
 #include "utils.hpp"
+#include "display.hpp"
 
 Vec3 correct(const Vec3& n, const Vec3& a) {
 	return a - n * (dot_product(n, a) / dot_product(n, n));
@@ -60,6 +61,8 @@ int entrance(int argc, char** argv) {
 
 	std::string filename = "out.bmp";
 	std::string modelpath = "../../../samples/Keqing/Keqing.obj";
+
+	ImageDisplay display(width, height);
 
 
 	using namespace std;
@@ -149,6 +152,7 @@ int entrance(int argc, char** argv) {
 						height
 					);
 					save_image(image, filename);
+					display.show(image);
 				} else if (args.size() == 1 && args[0] == "p") {
 					printf(
 						"[Camera]\n"
